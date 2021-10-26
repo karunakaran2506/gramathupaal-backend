@@ -24,7 +24,7 @@ const UserLogin = async function (req, res) {
                         resolve({ status: 200, success: true, user: findUser, token: token, message : 'Login Successful'})
                     }
                     else {
-                        reject({ status: 403, success: false, message: 'Incorrect Password' })
+                        reject({ status: 200, success: false, message: 'Incorrect Password' })
                     }
                 }
 
@@ -128,7 +128,7 @@ const AdminLogin = async function (req, res) {
                         resolve({ status: 200, success: true, user: findUser, token: token, message : 'Login Successful'})
                     }
                     else {
-                        reject({ status: 403, success: false, message: 'Incorrect Password' })
+                        reject({ status: 200, success: false, message: 'Incorrect Password' })
                     }
                 }
 
