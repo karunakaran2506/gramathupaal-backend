@@ -1,5 +1,6 @@
 const Order = require('../model/orders');
 const Orderitems = require('../model/orderitems');
+const Stock = require('../model/stockmanagement');
 const helper = require('../common/helper');
 
 const PlaceOrder = async function (req, res) {
@@ -10,9 +11,9 @@ const PlaceOrder = async function (req, res) {
         if (checkAccess) {
             try {
 
-                let orderid = 'GPORD' + '2020' + '10' + '25';
+                let findDate = new Date();
 
-                console.log('orderid', orderid);
+                let orderid = await helper.generateOrderId();
 
                 let order = await Order.create({
                     name: req.body.name,
@@ -21,18 +22,36 @@ const PlaceOrder = async function (req, res) {
                     subtotal: req.body.subtotal,
                     totalamount: req.body.totalamount,
                 }).then(async (data) => {
-                    console.log('data', data);
 
                     let orderitems = [];
 
                     for (let i = 0; i < req.body.orderitems.length; i++) {
+
+                        let item = req.body.orderitems[i];
                         let orderitem = await Orderitems.create({
-                            quantity: req.body.orderitems[i].quantity,
-                            totalamount: req.body.orderitems[i].totalamount,
-                            product: req.body.orderitems[i].product,
+                            quantity: item.quantity,
+                            totalamount: item.totalamount,
+                            product: item.product,
                             order: data._id
                         })
                         orderitems.push(orderitem._id);
+
+                        let quantity = item.quantity;
+                        if (item.type === 'milk'){
+                            if(item.unit === 'millilitre'){
+                                quantity = (item.productquantity / 1000) * item.quantity 
+                            }
+                        }
+                        let stockParams = {
+                            product : item.product,
+                            order: data._id,
+                            store: req.body.store,
+                            stocktype: 'out',
+                            quantity : quantity,
+                            producttype : item.type,
+                            entrydate : findDate
+                        }
+                        let result = await Stock.create(stockParams);
                     }
 
                     await Order.findByIdAndUpdate(data._id,
@@ -74,11 +93,11 @@ const ListOrders = async function (req, res) {
                 let orders = await Order.find({ store: req.body.store })
                     .populate({
                         path: 'orderitems',
-                        select: 'product',
                         populate: {
                             path: 'product'
                         }
                     })
+                    .populate('store')
                     .then((data) => {
                         resolve({ status: 200, success: true, message: 'Order list', orders: data })
                     })

@@ -6,10 +6,12 @@ const CategoryController = require('../controllers/CategoryController');
 const ProductController = require('../controllers/ProductController');
 const OrderController = require('../controllers/OrderController');
 const CostManagementController = require('../controllers/CostManagementController');
+const StockManagementController = require('../controllers/StockManagementController');
 
 // User Functions
 router.post('/userLogin', UserController.UserLogin);
 router.post('/userSignup', UserController.UserSignUp);
+router.post('/adminLogin', UserController.AdminLogin);
 
 // Store Functions 
 router.post('/createStore', StoreController.CreateStore);
@@ -30,5 +32,10 @@ router.post('/listOrders', OrderController.ListOrders);
 
 // Cost entry functions
 router.post('/saveCostEntry', CostManagementController.SaveCostEntry);
+router.post('/listEntries', CostManagementController.ListEntries);
+
+// Stock entry functions
+router.post('/saveStockEntry', StockManagementController.SaveStockEntry);
+router.post('/listStockEntries', StockManagementController.ListStockEntries);
 
 module.exports = router;

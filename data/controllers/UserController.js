@@ -105,7 +105,58 @@ const UserSignUp = async function (req, res) {
 
 }
 
+const AdminLogin = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.phone && req.body.password;
+
+        if (validParams) {
+
+            try {
+                // to check whether user exist
+                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Superadmin' });
+
+                if (findUser) {
+                    // compare the password using bcrypt
+                    let passwordCheck = helper.checkPassword(req.body.password, findUser.password);
+
+                    if (passwordCheck) {
+
+                        let token = helper.signToken(findUser.id);
+
+                        resolve({ status: 200, success: true, user: findUser, token: token, message : 'Login Successful'})
+                    }
+                    else {
+                        reject({ status: 403, success: false, message: 'Incorrect Password' })
+                    }
+                }
+
+                else {
+                    reject({ status: 200, success: false, message: 'Admin does not exist' });
+                }
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide Valid data' })
+        }
+    });
+
+    promise
+
+    .then(function (data) {
+        res.status(data.status).send({ success: data.success, message: data.message, user : data.user, token : data.token});
+    })
+    .catch(function (error) {
+        res.status(error.status).send({ success: error.success, message: error.message });
+    })
+
+}
+
 module.exports = {
     UserLogin,
-    UserSignUp
+    UserSignUp,
+    AdminLogin
 };

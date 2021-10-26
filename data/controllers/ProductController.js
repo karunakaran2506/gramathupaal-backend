@@ -59,7 +59,7 @@ const ListProduct = async function (req, res) {
 
         if (validParams) {
             try {
-                let product = await Product.find({ store: req.body.store })
+                let product = await Product.find({ store: req.body.store }).populate('category')
                     .then((data) => {
                         resolve({ status: 200, success: true, message: 'Product list', product : data })
                     })

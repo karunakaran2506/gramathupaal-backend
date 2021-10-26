@@ -1,26 +1,33 @@
 const bcrypt = require('bcrypt');
 const salt = bcrypt.genSaltSync(8);
-const secret = require('./constants').secret;
+const { secret } = require('./constants');
 const jwt = require('jsonwebtoken');
 const Users = require('../model/users');
-const otpGenerator = require('otp-generator');
 
-const verifyAdminToken = async (token) =>{
-    let {id} = jwt.verify(token, secret);
-    let findUser = await Users.findById(id);
-    return findUser.role === 'Superadmin' ? true : false;
-}
-
-const verifyToken = async (token) =>{
-    let {id} = jwt.verify(token, secret);
-    let findUser = await Users.findById(id);
-    return findUser ? true : false;
-}
-
-const getUser = async (token) =>{
-    let {id} = jwt.verify(token, secret);
+async function jwtToken(token) {
+    let result;
+    try {
+        result = jwt.verify(token, secret);
+    } catch (error) {
+    }
+    let { id } = result;
     let findUser = await Users.findById(id);
     return findUser;
+}
+
+const verifyAdminToken = async (token) => {
+    let result = await jwtToken(token);
+    return result.role === 'Superadmin' ? true : false;
+}
+
+const verifyToken = async (token) => {
+    let result = await jwtToken(token);
+    return result.role === 'Storeclerk' ? true : false;
+}
+
+const getUser = async (token) => {
+    let result = await jwtToken(token);
+    return result;
 }
 
 const signToken = (id) => {
@@ -28,16 +35,21 @@ const signToken = (id) => {
 }
 
 const checkPassword = (password1, password2) => {
-    return bcrypt.compareSync( password1, password2)
+    return bcrypt.compareSync(password1, password2)
 }
 
 const hashPassword = (password) => {
     return bcrypt.hashSync(password, salt)
 }
 
-const generateOtp = async (length, data) => {
-    let otp = await otpGenerator.generate(length, data)
-    return otp;
+const generateOrderId = async () => {
+    let findDate = new Date();
+    let date = findDate.getDate();
+    let month = findDate.getMonth();
+    let year = findDate.getFullYear();
+    let otp = 12;
+    let orderId = 'GPORD' + year + month + date + otp;
+    return orderId;
 }
 
 module.exports = {
@@ -46,6 +58,6 @@ module.exports = {
     checkPassword,
     hashPassword,
     verifyToken,
-    generateOtp,
-    getUser
+    getUser,
+    generateOrderId
 }

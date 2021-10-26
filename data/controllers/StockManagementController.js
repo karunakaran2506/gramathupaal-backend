@@ -1,11 +1,11 @@
-const CashManagement = require('../model/cashmanagement');
+const Stock = require('../model/stockmanagement');
 const helper = require('../common/helper');
 
-const SaveCostEntry = async function (req, res) {
+const SaveStockEntry = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
-        let validParams = req.body.date && req.body.type && req.body.amount && req.body.store && req.headers.token;
+        let validParams = req.body.date && req.body.product && req.body.quantity && req.body.store && req.body.type && req.headers.token;
 
         if (validParams) {
 
@@ -15,13 +15,13 @@ const SaveCostEntry = async function (req, res) {
             let user = await helper.getUser(token);
             if (checkAccess) {
                 try {
-                    let result = await CashManagement.create({
-                        entrydate: req.body.date,
-                        type: req.body.type,
-                        comment: req.body.comment,
-                        amount: req.body.amount,
+                    let result = await Stock.create({
+                        product : req.body.product,
                         store: req.body.store,
-                        user: user
+                        stocktype: 'in',
+                        quantity : req.body.quantity,
+                        producttype : req.body.type,
+                        entrydate : req.body.date
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Entry created successfully' })
                     })
@@ -50,7 +50,7 @@ const SaveCostEntry = async function (req, res) {
 
 }
 
-const ListEntries = async function (req, res) {
+const ListStockEntries = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
@@ -62,7 +62,7 @@ const ListEntries = async function (req, res) {
                 let newdate = req.body.date;
                 const start = new Date(new Date(newdate).setUTCHours(0, 0, 0, 0));
                 const end = new Date(new Date(newdate).setUTCHours(23, 59, 59, 999));
-                let entries = await CashManagement.find({ store: req.body.store, entrydate: { $gte: start, $lt: end } }).populate('user')
+                let entries = await Stock.find({ store: req.body.store, entrydate: { $gte: start, $lt: end } }).populate('product')
                 .then((data) => {
                         resolve({ status: 200, success: true, message: 'Entries list', entries: data })
                 })
@@ -88,6 +88,6 @@ const ListEntries = async function (req, res) {
 }
 
 module.exports = {
-    SaveCostEntry,
-    ListEntries
+    SaveStockEntry,
+    ListStockEntries
 }

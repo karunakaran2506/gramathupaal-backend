@@ -69,7 +69,8 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+.gitignore
+.package-lock.json
 .env.test
 
 # parcel-bundler cache (https://parceljs.org/)
