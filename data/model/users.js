@@ -17,9 +17,10 @@ const UserSchema = new Schema({
 		require: true
 	},
     email : {
-        type : String
+        type : String,
+        default : null
     },
-    isverified : {
+    isdeleted : {
         type : Number,
         default : 0
     },
@@ -28,6 +29,10 @@ const UserSchema = new Schema({
         default : null
     },
     forgetotp :{
+        type : String,
+        default : null
+    },
+    userimage:{
         type : String,
         default : null
     },
@@ -40,6 +45,10 @@ const UserSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'store'
     },
+    adhar:{
+        type: String,
+        default: null
+    },
     player_id:{
 		type: String,
 		default:null
@@ -49,7 +58,6 @@ const UserSchema = new Schema({
 		required: true,
 		default: new Date()
 	}
-
 })
 
 module.exports = Users = mongoose.model('user', UserSchema);

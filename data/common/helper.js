@@ -9,6 +9,7 @@ async function jwtToken(token) {
     try {
         result = jwt.verify(token, secret);
     } catch (error) {
+        return null;
     }
     let { id } = result;
     let findUser = await Users.findById(id);
@@ -22,7 +23,7 @@ const verifyAdminToken = async (token) => {
 
 const verifyToken = async (token) => {
     let result = await jwtToken(token);
-    return result.role === 'Storeclerk' ? true : false;
+    return result.role === 'Storeclerk' || result.role === 'Superadmin' ? true : false;
 }
 
 const getUser = async (token) => {
@@ -44,11 +45,15 @@ const hashPassword = (password) => {
 
 const generateOrderId = async () => {
     let findDate = new Date();
+    let hour = findDate.getHours();
+    let minute = findDate.getMinutes();
+    let seconds = findDate.getSeconds();
+    let milliseconds = findDate.getMilliseconds();
     let date = findDate.getDate();
     let month = findDate.getMonth();
     let year = findDate.getFullYear();
-    let otp = 12;
-    let orderId = 'GPORD' + year + month + date + otp;
+    let otp = Math.floor(Math.random() * 1000);;
+    let orderId = `GPORD${date}${otp}${milliseconds}`;
     return orderId;
 }
 

@@ -6,6 +6,12 @@ const CategorySchema = new Schema({
         type : String,
         required : true
     },
+    categorytype : {
+        type : String,
+        enum : ['milk', 'others'],
+        default : 'others',
+        required : true
+    },
     isactive : {
         type : Number,
         default : 1

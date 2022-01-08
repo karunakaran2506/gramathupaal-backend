@@ -1,27 +1,29 @@
 const Stock = require('../model/stockmanagement');
 const helper = require('../common/helper');
+const Product = require('../model/product');
 
 const SaveStockEntry = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
-        let validParams = req.body.date && req.body.product && req.body.quantity && req.body.store && req.body.type && req.headers.token;
+        let validParams = req.body.entryDate && req.body.product && req.body.quantity && req.body.store && req.body.producttype && req.headers.token;
 
         if (validParams) {
 
             let token = req.headers.token;
 
-            let checkAccess = await helper.verifyToken(token);
+            let checkAccess = await helper.verifyAdminToken(token);
             let user = await helper.getUser(token);
             if (checkAccess) {
                 try {
                     let result = await Stock.create({
-                        product : req.body.product,
+                        product: req.body.product,
                         store: req.body.store,
                         stocktype: 'in',
-                        quantity : req.body.quantity,
-                        producttype : req.body.type,
-                        entrydate : req.body.date
+                        quantity: req.body.quantity,
+                        producttype: req.body.producttype,
+                        entrydate: req.body.entryDate,
+                        createdat: new Date()
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Entry created successfully' })
                     })
@@ -50,22 +52,370 @@ const SaveStockEntry = async function (req, res) {
 
 }
 
-const ListStockEntries = async function (req, res) {
+const ListAllStockEntries = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
-        let validParams = req.body.store && req.body.date;
+        let validParams = req.body.store;
+
+        if (validParams) {
+            try {
+
+                const entries = [];
+                let stockentry;
+
+                stockentry = await Product.find({ store: req.body.store }).populate('category')
+
+                for (let i = 0; i < stockentry.length; i++) {
+                    let totalStockIn = 0;
+                    let totalStockOut = 0;
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "in", product: stockentry[i]._id }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalStockIn = quantity;
+                    })
+
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "out", product: stockentry[i]._id }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalStockOut = quantity;
+                    });
+
+                    let data = {
+                        product: stockentry[i],
+                        totalStockIn,
+                        totalStockOut
+                    }
+                    entries.push(data);
+                }
+
+                resolve({ status: 200, success: true, message: 'Entries list', entries })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, entries: data.entries });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ListTodayStockEntries = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.headers.token && req.body.store;
+
+        if (validParams) {
+            try {
+
+                let newdate = new Date();
+                const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+                const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+                let product = await Stock.find({ store: req.body.store, stocktype: 'out', entrydate: { $gte: start, $lt: end } })
+                    .populate('product')
+                    .sort({ entrydate: -1 })
+                resolve({ status: 200, success: true, message: 'Entries list', product })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, entries: data.product });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ListTodayStockBalance = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.store;
+
+        if (validParams) {
+            try {
+
+            let newdate = new Date();
+                const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+                const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+                const entries = [];
+                let stockentry;
+
+                stockentry = await Product.find({ store: req.body.store }).populate('category')
+
+                for (let i = 0; i < stockentry.length; i++) {
+                    let totalStockIn = 0;
+                    let totalStockOut = 0;
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "in", product: stockentry[i]._id, entrydate: { $gte: start, $lt: end } }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalStockIn = quantity;
+                    })
+
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "out", product: stockentry[i]._id, entrydate: { $gte: start, $lt: end } }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalStockOut = quantity;
+                    });
+
+                    let data = {
+                        product: stockentry[i],
+                        totalStockIn,
+                        totalStockOut
+                    }
+                    entries.push(data);
+                }
+
+                resolve({ status: 200, success: true, message: 'Entries list', entries })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, entries: data.entries });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ListTodayStockEntriesbyProduct = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.store;
+
+        if (validParams) {
+            try {
+
+                let newdate = new Date();
+                const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+                const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+                const entries = [];
+                let stockentry;
+
+                stockentry = await Product.find({ store: req.body.store });
+
+                for (let i = 0; i < stockentry.length; i++) {
+                    let totalStockIn = 0;
+                    let totalStockOut = 0;
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "in", product: stockentry[i]._id, entrydate: { $gte: start, $lt: end } }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalStockIn = quantity;
+                    })
+
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "out", product: stockentry[i]._id, entrydate: { $gte: start, $lt: end } }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalStockOut = quantity;
+                    });
+
+                    let data = {
+                        product: stockentry[i],
+                        totalStockIn,
+                        totalStockOut
+                    }
+                    entries.push(data);
+                }
+
+                resolve({ status: 200, success: true, message: 'Entries list', entries })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, entries: data.entries });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ListStockEntriesByProducts = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.product;
+
+        if (validParams) {
+            try {
+                let product = await Stock.find({ product: req.body.product }).sort({ entrydate: -1 })
+                resolve({ status: 200, success: true, message: 'Entries list', product })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, entries: data.product });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ListStockEntriesByDate = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.headers.token;
 
         if (validParams) {
             try {
 
                 let newdate = req.body.date;
-                const start = new Date(new Date(newdate).setUTCHours(0, 0, 0, 0));
-                const end = new Date(new Date(newdate).setUTCHours(23, 59, 59, 999));
-                let entries = await Stock.find({ store: req.body.store, entrydate: { $gte: start, $lt: end } }).populate('product')
-                .then((data) => {
-                        resolve({ status: 200, success: true, message: 'Entries list', entries: data })
-                })
+                const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+                const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+                let entries = await Stock.find({ store: req.body.store, stocktype: 'out', createdat: { $gte: start, $lt: end } })
+                    .populate('product')
+                    .sort({ entrydate: -1 })
+
+                resolve({ status: 200, success: true, message: 'Entries list', entries })
             } catch (error) {
                 reject({ status: 200, success: false, message: error.message })
             }
@@ -89,5 +439,10 @@ const ListStockEntries = async function (req, res) {
 
 module.exports = {
     SaveStockEntry,
-    ListStockEntries
+    ListAllStockEntries,
+    ListTodayStockEntries,
+    ListTodayStockEntriesbyProduct,
+    ListStockEntriesByProducts,
+    ListStockEntriesByDate,
+    ListTodayStockBalance
 }

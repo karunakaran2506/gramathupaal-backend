@@ -15,6 +15,10 @@ const ProductSchema = new Schema({
         enum: ['milk', 'others'],
         required : true
     },
+    milktype: {
+        type: String,
+        enum: ['buffalomilk', 'a1milk', 'a2milk'],
+    },
     description: {
         type: String
     },

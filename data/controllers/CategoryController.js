@@ -5,7 +5,7 @@ const CreateCategory = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
-        let validParams = req.body.store && req.body.category && req.headers.token;
+        let validParams = req.body.store && req.body.name && req.headers.token;
 
         if (validParams) {
 
@@ -14,7 +14,7 @@ const CreateCategory = async function (req, res) {
                 try {
 
                     let category = await Category.create({
-                        name: req.body.category,
+                        name: req.body.name,
                         store: req.body.store
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Category created successfully' })

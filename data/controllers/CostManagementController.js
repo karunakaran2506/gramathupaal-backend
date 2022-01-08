@@ -60,8 +60,8 @@ const ListEntries = async function (req, res) {
             try {
 
                 let newdate = req.body.date;
-                const start = new Date(new Date(newdate).setUTCHours(0, 0, 0, 0));
-                const end = new Date(new Date(newdate).setUTCHours(23, 59, 59, 999));
+                const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+                const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
                 let entries = await CashManagement.find({ store: req.body.store, entrydate: { $gte: start, $lt: end } }).populate('user')
                 .then((data) => {
                         resolve({ status: 200, success: true, message: 'Entries list', entries: data })

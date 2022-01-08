@@ -1,5 +1,25 @@
 const Product = require('../model/product');
 const helper = require('../common/helper');
+const multer = require('multer');
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './data/public/images/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype == 'image/jpeg' || file.mimetype == 'image/png') {
+        cb(null, true);
+    } else {
+        cb(null, false);
+    }
+};
+
+const uploadImg = multer({ storage: storage, fileFilter: fileFilter }).single('image');
 
 const CreateProduct = async function (req, res) {
 
@@ -16,7 +36,7 @@ const CreateProduct = async function (req, res) {
                     let product = await Product.create({
                         name: req.body.name,
                         category: req.body.category,
-                        image: req.body.image,
+                        image: req.file.path,
                         type: req.body.type,
                         quantity: req.body.quantity,
                         unit: req.body.unit,
@@ -61,7 +81,7 @@ const ListProduct = async function (req, res) {
             try {
                 let product = await Product.find({ store: req.body.store }).populate('category')
                     .then((data) => {
-                        resolve({ status: 200, success: true, message: 'Product list', product : data })
+                        resolve({ status: 200, success: true, message: 'Product list', product: data })
                     })
             } catch (error) {
                 reject({ status: 200, success: false, message: error.message })
@@ -84,7 +104,127 @@ const ListProduct = async function (req, res) {
 
 }
 
+const EditProduct = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let ValidParams = req.headers.token && req.body.product;
+
+        if (ValidParams) {
+            try {
+                let checkAccess = helper.verifyAdminToken(req.headers.token);
+
+                if (checkAccess) {
+                    try {
+                        await Product.updateOne(
+
+                            { _id: req.body.product },
+                            {
+                                $set: {
+                                    name: req.body.name,
+                                    category: req.body.category,
+                                    image: req.file.path,
+                                    type: req.body.type,
+                                    quantity: req.body.quantity,
+                                    unit: req.body.unit,
+                                    price: req.body.price,
+                                    store: req.body.store,
+                                }
+                            })
+
+                        resolve({ success: true, message: 'Product edited successfully' })
+                    } catch (error) {
+                        reject({ success: false, message: error.message })
+                    }
+                }
+                else {
+                    reject({ success: false, message: 'No access found' })
+                }
+            }
+            catch {
+                reject({ success: false, message: 'Invalid token found' })
+            }
+        }
+        else {
+            reject({ success: false, message: 'No valid token' })
+        }
+
+    });
+
+    promise
+
+        .then((data) => {
+            console.log(data.message)
+            res.send({ success: data.success, message: data.message });
+        })
+        .catch((error) => {
+            console.log(error);
+            console.log(error.message);
+            res.send({ success: error.success, message: error.message });
+        })
+
+}
+
+const EditProductwithoutImage = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let ValidParams = req.headers.token && req.body.product;
+
+        if (ValidParams) {
+            try {
+                let checkAccess = helper.verifyAdminToken(req.headers.token);
+
+                if (checkAccess) {
+                    try {
+                        await Product.updateOne(
+                            { _id: req.body.product },
+                            {
+                                $set: {
+                                    name: req.body.name,
+                                    category: req.body.category,
+                                    type: req.body.type,
+                                    quantity: req.body.quantity,
+                                    unit: req.body.unit,
+                                    price: req.body.price,
+                                    store: req.body.store,
+                                }
+                            })
+
+                        resolve({ success: true, message: 'Product edited successfully' })
+                    } catch (error) {
+                        reject({ success: false, message: error.message })
+                    }
+                }
+                else {
+                    reject({ success: false, message: 'No vendor found' })
+                }
+            }
+            catch {
+                reject({ success: false, message: 'Invalid token found' })
+            }
+        }
+        else {
+            reject({ success: false, message: 'No valid token' })
+        }
+
+    });
+
+    promise
+
+        .then((data) => {
+            res.send({ success: data.success, message: data.message });
+        })
+        .catch((error) => {
+            res.send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
+    uploadImg,
     CreateProduct,
-    ListProduct
+    ListProduct,
+    EditProduct,
+    EditProductwithoutImage
 }
