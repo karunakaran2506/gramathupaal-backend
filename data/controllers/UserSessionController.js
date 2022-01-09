@@ -18,7 +18,7 @@ const CreateSession = async function (req, res) {
             if (checkAccess) {
                 try {
                     await Session.create({
-                        entrydate: new Date(),
+                        entrydate: findDate,
                         sessiontime: findTime,
                         sessiontype: req.body.sessiontype,
                         user : user._id,

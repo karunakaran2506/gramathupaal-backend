@@ -53,7 +53,7 @@ const UserSchema = new Schema({
 		type: String,
 		default:null
 	},
-    created_at: {
+    createdat: {
 		type: Date,
 		required: true,
 		default: new Date()

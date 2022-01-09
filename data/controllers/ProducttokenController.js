@@ -1,4 +1,5 @@
 const ProductToken = require('../model/producttoken');
+const ProductTokenHistory = require('../model/producttokenhistory');
 const Users = require('../model/users');
 const helper = require('../common/helper');
 
@@ -12,6 +13,8 @@ const CreateProductToken = async function (req, res) {
             try {
 
                 let customer;
+                let findDate = new Date();
+                const user = await helper.getUser(req.headers.token);
 
                 if (req.body.customer.name && req.body.customer.phone) {
 
@@ -26,7 +29,8 @@ const CreateProductToken = async function (req, res) {
                             phone: req.body.customer.phone,
                             password: hashedPassword,
                             role: 'Customer',
-                            store: req.body.store
+                            store: req.body.store,
+                            createdat: findDate
                         }).then(async (data) => {
                             customer = data._id;
                         })
@@ -36,6 +40,16 @@ const CreateProductToken = async function (req, res) {
                 } else {
                     reject({ status: 200, success: false, message: 'Provide all customer details' })
                 }
+
+                const producttokenhistory = await ProductTokenHistory.create({
+                    customer,
+                    product: req.body.product,
+                    price: req.body.price,
+                    quantity: req.body.quantity,
+                    paymentMethod: req.body.paymentMethod,
+                    store: req.body.store,
+                    soldby: user
+                })
 
                 const result = await ProductToken.findOne({ customer, product: req.body.product })
 
@@ -52,7 +66,8 @@ const CreateProductToken = async function (req, res) {
                         customer,
                         quantity: req.body.quantity,
                         product: req.body.product,
-                        store: req.body.store
+                        store: req.body.store,
+                        createdat: findDate
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Product Token created successfully' })
                     })
@@ -130,8 +145,43 @@ const ListProductTokenbyCustomer = async function (req, res) {
 
 }
 
+const ListTokenHistorybyStore = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+
+            let newdate = req.body.date;
+            const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+            const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+            let product = await ProductTokenHistory.find({ store: req.body.store, createdat: { $gte: start, $lt: end } })
+                .populate('product')
+                .populate('soldby')
+                .populate('customer')
+                .then((data) => {
+                    resolve({ status: 200, success: true, message: 'Token history list', history: data })
+                })
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, history: data.history });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
     CreateProductToken,
     ListProductTokenbyStore,
-    ListProductTokenbyCustomer
+    ListProductTokenbyCustomer,
+    ListTokenHistorybyStore
 }

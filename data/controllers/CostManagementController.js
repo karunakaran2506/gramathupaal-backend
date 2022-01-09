@@ -15,13 +15,17 @@ const SaveCostEntry = async function (req, res) {
             let user = await helper.getUser(token);
             if (checkAccess) {
                 try {
+
+                    let findDate = new Date();
+
                     let result = await CashManagement.create({
                         entrydate: req.body.date,
                         type: req.body.type,
                         comment: req.body.comment,
                         amount: req.body.amount,
                         store: req.body.store,
-                        user: user
+                        user: user,
+                        createdat: findDate
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Entry created successfully' })
                     })

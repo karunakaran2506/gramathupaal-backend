@@ -36,7 +36,8 @@ const PlaceOrder = async function (req, res) {
                             phone: req.body.customer.phone,
                             password: hashedPassword,
                             role: 'Customer',
-                            store: req.body.store
+                            store: req.body.store,
+                            createdat: findDate
                         }).then(async (data) => {
                             customer = data._id;
                         })
@@ -50,7 +51,8 @@ const PlaceOrder = async function (req, res) {
                 if (req.body.paymentMethod === 'credit' || req.body.paymentMethod === 'free') {
                     await Credit.create({
                         customer,
-                        reason: req.body.creditreason
+                        reason: req.body.creditreason,
+                        createdat: findDate
                     }).then(async (data) => {
                         ordercredit = data._id;
                     })
@@ -891,6 +893,214 @@ const OverallTodayOrderDetails = async function (req, res) {
 
 }
 
+const DatewiseOrderDetails = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.headers.token;
+
+        if (validParams) {
+            try {
+
+                let newdate = req.body.date;
+                const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+                const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+                let totalcredit = 0;
+                let totalfree = 0;
+                let totalcash = 0;
+                let totalcard = 0;
+                let totalupi = 0;
+                let totaltoken = 0;
+                let totalmilkcard = 0;
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'credit', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totalcredit = sales;
+                })
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'free', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totalfree = sales;
+                })
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'cash', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totalcash = sales;
+                })
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'card', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totalcard = sales;
+                })
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'upi', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totalupi = sales;
+                })
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'token', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totaltoken = sales;
+                })
+
+                await Order.aggregate(
+                    [
+                        {
+                            $match: { paymentMethod: 'milkcard', store: ObjectId(req.body.store), createdat: { $gte: start, $lt: end } }
+                        },
+                        {
+                            $group:
+                            {
+                                _id: 1,
+                                sum: { $sum: '$totalamount' }
+                            }
+                        }
+                    ]
+                ).then((data) => {
+
+                    let sales = 0;
+                    if (data.length) {
+                        sales = data[0].sum + sales;
+                    }
+                    totalmilkcard = sales;
+                })
+
+                let data = {
+                    totalcredit,
+                    totalfree,
+                    totalcash,
+                    totalcard,
+                    totalupi,
+                    totaltoken,
+                    totalmilkcard
+                }
+
+                resolve({ status: 200, success: true, message: 'Order list', data })
+
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, data: data.data });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
     PlaceOrder,
     ListOrders,
@@ -900,5 +1110,6 @@ module.exports = {
     ViewUserPastSales,
     TodayOrderDetails,
     ListOrdersbyCustomer,
-    OverallTodayOrderDetails
+    OverallTodayOrderDetails,
+    DatewiseOrderDetails
 }

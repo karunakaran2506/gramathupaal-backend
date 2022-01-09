@@ -33,6 +33,8 @@ const CreateProduct = async function (req, res) {
             if (checkAccess) {
                 try {
 
+                    let findDate = new Date();
+
                     let product = await Product.create({
                         name: req.body.name,
                         category: req.body.category,
@@ -42,6 +44,7 @@ const CreateProduct = async function (req, res) {
                         unit: req.body.unit,
                         price: req.body.price,
                         store: req.body.store,
+                        createdat: findDate
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Product created successfully' })
                     })

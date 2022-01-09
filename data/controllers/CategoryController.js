@@ -13,9 +13,12 @@ const CreateCategory = async function (req, res) {
             if (checkAccess) {
                 try {
 
+                    let findDate = new Date();
+
                     let category = await Category.create({
                         name: req.body.name,
-                        store: req.body.store
+                        store: req.body.store,
+                        createdat: findDate
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Category created successfully' })
                     })

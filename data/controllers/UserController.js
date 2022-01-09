@@ -100,7 +100,8 @@ const UserSignUp = async function (req, res) {
                         password: hashedPassword,
                         role: req.body.role,
                         store: req.body.store,
-                        adhar: req.body.adhar
+                        adhar: req.body.adhar,
+                        createdat: new Date()
                     }).then(async (data) => {
                         resolve({ status: 200, success: true, message: 'User created successfully' })
                     })
@@ -156,7 +157,8 @@ const UserSignupWithImage = async function (req, res) {
                         password: hashedPassword,
                         role: req.body.role,
                         store: req.body.store,
-                        adhar: req.body.adhar
+                        adhar: req.body.adhar,
+                        createdat: new Date()
                     }).then(async (data) => {
                         resolve({ status: 200, success: true, message: 'User created successfully' })
                     })
@@ -561,7 +563,8 @@ const CustomerSignUp = async function (req, res) {
                         phone: req.body.phone,
                         password: hashedPassword,
                         role: 'Customer',
-                        store: req.body.store
+                        store: req.body.store,
+                        createdat: new Date()
                     }).then(async (data) => {
                         resolve({ status: 200, success: true, message: 'Customer created successfully' })
                     })

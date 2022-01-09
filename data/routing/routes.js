@@ -48,6 +48,7 @@ router.post('/viewUserPastSales', OrderController.ViewUserPastSales);
 router.post('/todayOrderDetails', OrderController.TodayOrderDetails);
 router.post('/listOrdersbyCustomer', OrderController.ListOrdersbyCustomer);
 router.get('/overallTodayOrderDetails', OrderController.OverallTodayOrderDetails);
+router.post('/datewiseOrderDetails', OrderController.DatewiseOrderDetails);
 
 // Cost entry functions
 router.post('/saveCostEntry', CostManagementController.SaveCostEntry);
@@ -71,10 +72,12 @@ router.post('/createMilkcard', MilkcardController.CreateMilkcard);
 router.post('/createMilkcardEntry', MilkcardController.CreateMilkcardEntry);
 router.get('/listMilkcard', MilkcardController.ListMilkcard);
 router.post('/listMilkcardEntrybyCustomer', MilkcardController.ListMilkcardEntrybyCustomer);
+router.post('/listMilkcardHistorybyStore', MilkcardController.ListMilkcardHistorybyStore);
 
 // Product Token functions
 router.post('/createProductToken', ProducttokenController.CreateProductToken);
 router.post('/listProductTokenbyCustomer', ProducttokenController.ListProductTokenbyCustomer);
 router.post('/listProductTokenbyStore', ProducttokenController.ListProductTokenbyStore);
+router.post('/listTokenHistorybyStore', ProducttokenController.ListTokenHistorybyStore);
 
 module.exports = router;

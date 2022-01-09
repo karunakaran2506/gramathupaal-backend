@@ -1,6 +1,7 @@
 const helper = require('../common/helper');
 const Milkcard = require('../model/milkcard');
 const Milkcardentry = require('../model/milkcardentry');
+const Milkcardhistory = require('../model/milkcardhistory');
 const Users = require('../model/users');
 
 const CreateMilkcard = async function (req, res) {
@@ -11,11 +12,13 @@ const CreateMilkcard = async function (req, res) {
 
         if (validParams) {
             try {
+                let findDate = new Date();
                 let milkcard = await Milkcard.create({
                     name: req.body.name,
                     price: req.body.price,
                     validity: req.body.validity,
                     product: req.body.product,
+                    createdat: findDate
                 }).then((data) => {
                     resolve({ status: 200, success: true, message: 'Milkcard created successfully' })
                 })
@@ -76,6 +79,8 @@ const CreateMilkcardEntry = async function (req, res) {
             try {
 
                 let customer;
+                let findDate = new Date();
+                const user = await helper.getUser(req.headers.token);
 
                 if (req.body.customer.name && req.body.customer.phone) {
 
@@ -90,7 +95,8 @@ const CreateMilkcardEntry = async function (req, res) {
                             phone: req.body.customer.phone,
                             password: hashedPassword,
                             role: 'Customer',
-                            store: req.body.store
+                            store: req.body.store,
+                            createdat: findDate,
                         }).then(async (data) => {
                             customer = data._id;
                         })
@@ -100,6 +106,15 @@ const CreateMilkcardEntry = async function (req, res) {
                 } else {
                     reject({ status: 200, success: false, message: 'Provide all customer details' })
                 }
+
+                const milkcardhistory = await Milkcardhistory.create({
+                    customer,
+                    milkcard: req.body.milkcard,
+                    price: req.body.price,
+                    paymentMethod: req.body.paymentMethod,
+                    store: req.body.store,
+                    soldby: user
+                })
 
                 const result = await Milkcardentry.findOne({ customer, milkcard: req.body.milkcard })
 
@@ -113,9 +128,10 @@ const CreateMilkcardEntry = async function (req, res) {
                     })
                 } else {
                     let milkcard = await Milkcardentry.create({
-                        customer: req.body.customer,
+                        customer,
                         validity: req.body.validity,
-                        milkcard: req.body.milkcard
+                        milkcard: req.body.milkcard,
+                        createdat: findDate
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: 'Milkcard entry created successfully' })
                     })
@@ -167,9 +183,44 @@ const ListMilkcardEntrybyCustomer = async function (req, res) {
 
 }
 
+const ListMilkcardHistorybyStore = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+
+            let newdate = req.body.date;
+            const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+            const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+            let product = await Milkcardhistory.find({ store: req.body.store, createdat: { $gte: start, $lt: end } })
+                .populate('milkcard')
+                .populate('soldby')
+                .populate('customer')
+                .then((data) => {
+                    resolve({ status: 200, success: true, message: 'Milkcard history list', history: data })
+                })
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, history: data.history });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
     CreateMilkcard,
     ListMilkcard,
     CreateMilkcardEntry,
-    ListMilkcardEntrybyCustomer
+    ListMilkcardEntrybyCustomer,
+    ListMilkcardHistorybyStore
 }

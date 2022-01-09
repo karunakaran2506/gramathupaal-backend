@@ -16,7 +16,8 @@ const CreateStore = async function (req, res) {
                     let newStore = await Store.create({
                         name: req.body.name,
                         location: req.body.location,
-                        email: req.body.email
+                        email: req.body.email,
+                        createdat: new Date()
                     }).then((data) => {
                         resolve({ status: 200, success: true, message: "Store created successfully" })
                     })
