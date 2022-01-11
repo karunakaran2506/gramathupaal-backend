@@ -4,7 +4,7 @@ const http = require('http');
 const server = http.createServer(app);
 
 //Server command
-// NODE_ENV=production TZ='Asia/Calcutta' pm2 start server.js --name gramathupaal-09.01.2022-a
+// NODE_ENV=production TZ='Asia/Calcutta' pm2 start server.js --name gramathupaal-10.01.2022-a
 
 //Timezone set
 process.env.TZ = 'Asia/Kolkata';

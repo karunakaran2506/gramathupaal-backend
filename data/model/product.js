@@ -37,7 +37,7 @@ const ProductSchema = new Schema({
     },
     unit: {
         type: String,
-        enum: ['gram', 'kilogram', 'litre', 'millilitre'],
+        enum: ['gram', 'kilogram', 'litre', 'millilitre', 'piece'],
         required: true
     },
     price: {

@@ -9,7 +9,7 @@ const StockManagementSchema = new Schema({
     },
     stocktype :{
         type: String,
-        enum : ['in', 'out'],
+        enum : ['in', 'out', 'byproduct'],
         required : true
     },
     quantity: {

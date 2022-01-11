@@ -23,6 +23,59 @@ const PlaceOrder = async function (req, res) {
                 let orderid = await helper.generateOrderId();
                 const user = await helper.getUser(req.headers.token);
 
+                const createOrder = async () => {
+                    let order = await Order.create({
+                        orderid: orderid,
+                        store: req.body.store,
+                        subtotal: req.body.subtotal,
+                        totalamount: req.body.totalamount,
+                        paymentMethod: req.body.paymentMethod,
+                        createdat: findDate,
+                        user,
+                        customer,
+                        ordercredit
+                    }).then(async (data) => {
+    
+                        let orderitems = [];
+    
+                        for (let i = 0; i < req.body.orderitems.length; i++) {
+    
+                            let item = req.body.orderitems[i];
+                            let orderitem = await Orderitems.create({
+                                quantity: item.quantity,
+                                totalamount: item.totalamount,
+                                product: item.product,
+                                order: data._id,
+                                createdat: findDate
+                            })
+                            orderitems.push(orderitem._id);
+    
+                            let quantity = item.quantity;
+                            if (item.type === 'milk') {
+                                if (item.unit === 'millilitre') {
+                                    quantity = (item.productquantity / 1000) * item.quantity
+                                }
+                            }
+                            let stockParams = {
+                                product: item.product,
+                                order: data._id,
+                                store: req.body.store,
+                                stocktype: 'out',
+                                quantity: quantity,
+                                producttype: item.type,
+                                entrydate: findDate
+                            }
+                            let result = await Stock.create(stockParams);
+                        }
+    
+                        await Order.findByIdAndUpdate(data._id,
+                            { orderitems: orderitems },
+                            { new: true, useFindAndModify: false }
+                        )
+                        resolve({ status: 200, success: true, message: 'Order Placed successfully' })
+                    })
+                };
+
                 if (req.body.customer.name && req.body.customer.phone) {
 
                     let findCustomer = await Users.findOne({ phone: req.body.customer.phone })
@@ -55,6 +108,7 @@ const PlaceOrder = async function (req, res) {
                         createdat: findDate
                     }).then(async (data) => {
                         ordercredit = data._id;
+                        await createOrder();
                     })
                 }
 
@@ -70,6 +124,7 @@ const PlaceOrder = async function (req, res) {
                                     { validity: updatedValidity },
                                     { new: true, useFindAndModify: false }
                                 )
+                                await createOrder();
                             } else {
                                 reject({ status: 200, success: false, message: 'No validity for the requested product' })
                             }
@@ -91,6 +146,7 @@ const PlaceOrder = async function (req, res) {
                                 { quantity: updatedQuantity },
                                 { new: true, useFindAndModify: false }
                             )
+                            await createOrder();
                         } else {
                             reject({ status: 200, success: false, message: 'No token available for the requested product quantity' })
                         }
@@ -99,56 +155,9 @@ const PlaceOrder = async function (req, res) {
                     }
                 }
 
-                let order = await Order.create({
-                    orderid: orderid,
-                    store: req.body.store,
-                    subtotal: req.body.subtotal,
-                    totalamount: req.body.totalamount,
-                    paymentMethod: req.body.paymentMethod,
-                    createdat: findDate,
-                    user,
-                    customer,
-                    ordercredit
-                }).then(async (data) => {
-
-                    let orderitems = [];
-
-                    for (let i = 0; i < req.body.orderitems.length; i++) {
-
-                        let item = req.body.orderitems[i];
-                        let orderitem = await Orderitems.create({
-                            quantity: item.quantity,
-                            totalamount: item.totalamount,
-                            product: item.product,
-                            order: data._id,
-                            createdat: findDate
-                        })
-                        orderitems.push(orderitem._id);
-
-                        let quantity = item.quantity;
-                        if (item.type === 'milk') {
-                            if (item.unit === 'millilitre') {
-                                quantity = (item.productquantity / 1000) * item.quantity
-                            }
-                        }
-                        let stockParams = {
-                            product: item.product,
-                            order: data._id,
-                            store: req.body.store,
-                            stocktype: 'out',
-                            quantity: quantity,
-                            producttype: item.type,
-                            entrydate: findDate
-                        }
-                        let result = await Stock.create(stockParams);
-                    }
-
-                    await Order.findByIdAndUpdate(data._id,
-                        { orderitems: orderitems },
-                        { new: true, useFindAndModify: false }
-                    )
-                    resolve({ status: 200, success: true, message: 'Order Placed successfully' })
-                })
+                if (req.body.paymentMethod === 'cash' || req.body.paymentMethod === 'card' || req.body.paymentMethod === 'upi') {
+                    await createOrder();
+                }
 
             } catch (error) {
                 reject({ status: 200, success: false, message: error.message })

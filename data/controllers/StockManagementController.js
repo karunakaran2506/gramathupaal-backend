@@ -19,7 +19,7 @@ const SaveStockEntry = async function (req, res) {
                     let result = await Stock.create({
                         product: req.body.product,
                         store: req.body.store,
-                        stocktype: 'in',
+                        stocktype: req.body.stocktype,
                         quantity: req.body.quantity,
                         producttype: req.body.producttype,
                         entrydate: req.body.entryDate,
@@ -52,6 +52,7 @@ const SaveStockEntry = async function (req, res) {
 
 }
 
+// overall stock entries for a store
 const ListAllStockEntries = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
@@ -69,6 +70,7 @@ const ListAllStockEntries = async function (req, res) {
                 for (let i = 0; i < stockentry.length; i++) {
                     let totalStockIn = 0;
                     let totalStockOut = 0;
+                    let totalByproduct = 0;
                     await Stock.aggregate(
                         [
                             {
@@ -112,10 +114,32 @@ const ListAllStockEntries = async function (req, res) {
                         totalStockOut = quantity;
                     });
 
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "byproduct", product: stockentry[i]._id }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalByproduct = quantity;
+                    });
+
                     let data = {
                         product: stockentry[i],
                         totalStockIn,
-                        totalStockOut
+                        totalStockOut,
+                        totalByproduct
                     }
                     entries.push(data);
                 }
@@ -155,7 +179,7 @@ const ListTodayStockEntries = async function (req, res) {
                 const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
                 const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
 
-                let product = await Stock.find({ store: req.body.store, stocktype: 'out', entrydate: { $gte: start, $lt: end } })
+                let product = await Stock.find({ store: req.body.store, stocktype: { $in : ["out", "byproduct"] }, entrydate: { $gte: start, $lt: end } })
                     .populate('product')
                     .sort({ entrydate: -1 })
                 resolve({ status: 200, success: true, message: 'Entries list', product })
@@ -201,6 +225,7 @@ const ListTodayStockBalance = async function (req, res) {
                 for (let i = 0; i < stockentry.length; i++) {
                     let totalStockIn = 0;
                     let totalStockOut = 0;
+                    let totalByproduct = 0;
                     await Stock.aggregate(
                         [
                             {
@@ -244,10 +269,32 @@ const ListTodayStockBalance = async function (req, res) {
                         totalStockOut = quantity;
                     });
 
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "byproduct", product: stockentry[i]._id, entrydate: { $gte: start, $lt: end } }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalByproduct = quantity;
+                    });
+
                     let data = {
                         product: stockentry[i],
                         totalStockIn,
-                        totalStockOut
+                        totalStockOut,
+                        totalByproduct
                     }
                     entries.push(data);
                 }
@@ -294,6 +341,7 @@ const ListTodayStockEntriesbyProduct = async function (req, res) {
                 for (let i = 0; i < stockentry.length; i++) {
                     let totalStockIn = 0;
                     let totalStockOut = 0;
+                    let totalByproduct = 0;
                     await Stock.aggregate(
                         [
                             {
@@ -337,10 +385,32 @@ const ListTodayStockEntriesbyProduct = async function (req, res) {
                         totalStockOut = quantity;
                     });
 
+                    await Stock.aggregate(
+                        [
+                            {
+                                $match: { stocktype: "byproduct", product: stockentry[i]._id, entrydate: { $gte: start, $lt: end } }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: 1,
+                                    sum: { $sum: '$quantity' }
+                                }
+                            }
+                        ]
+                    ).then((data) => {
+                        let quantity = 0;
+                        if (data.length) {
+                            quantity = data[0].sum + quantity;
+                        }
+                        totalByproduct = quantity;
+                    });
+
                     let data = {
                         product: stockentry[i],
                         totalStockIn,
-                        totalStockOut
+                        totalStockOut,
+                        totalByproduct
                     }
                     entries.push(data);
                 }
@@ -411,7 +481,7 @@ const ListStockEntriesByDate = async function (req, res) {
                 const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
                 const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
 
-                let entries = await Stock.find({ store: req.body.store, stocktype: 'out', createdat: { $gte: start, $lt: end } })
+                let entries = await Stock.find({ store: req.body.store, stocktype: { $in : ["out", "byproduct"] }, createdat: { $gte: start, $lt: end } })
                     .populate('product')
                     .sort({ entrydate: -1 })
 
