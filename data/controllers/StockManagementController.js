@@ -481,7 +481,7 @@ const ListStockEntriesByDate = async function (req, res) {
                 const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
                 const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
 
-                let entries = await Stock.find({ store: req.body.store, stocktype: { $in : ["out", "byproduct"] }, createdat: { $gte: start, $lt: end } })
+                let entries = await Stock.find({ store: req.body.store, stocktype: { $in : ["out"] }, entrydate: { $gte: start, $lt: end } })
                     .populate('product')
                     .sort({ entrydate: -1 })
 

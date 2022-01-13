@@ -83,9 +83,16 @@ const ListProduct = async function (req, res) {
         if (validParams) {
             try {
                 let product = await Product.find({ store: req.body.store }).populate('category')
-                    .then((data) => {
-                        resolve({ status: 200, success: true, message: 'Product list', product: data })
-                    })
+                product.sort(function (a, b) {
+                    var nameA = a.name.toLowerCase(), nameB = b.name.toLowerCase()
+                    if (nameA < nameB) //sort string ascending
+                        return -1
+                    if (nameA > nameB)
+                        return 1
+                    return 0 //default return value (no sorting)
+                })
+                resolve({ status: 200, success: true, message: 'Product list', product })
+
             } catch (error) {
                 reject({ status: 200, success: false, message: error.message })
             }

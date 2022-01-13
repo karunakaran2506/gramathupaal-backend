@@ -61,7 +61,7 @@ const PlaceOrder = async function (req, res) {
                                 order: data._id,
                                 store: req.body.store,
                                 stocktype: 'out',
-                                quantity: quantity,
+                                quantity,
                                 producttype: item.type,
                                 entrydate: findDate
                             }
@@ -69,7 +69,7 @@ const PlaceOrder = async function (req, res) {
                         }
     
                         await Order.findByIdAndUpdate(data._id,
-                            { orderitems: orderitems },
+                            { orderitems },
                             { new: true, useFindAndModify: false }
                         )
                         resolve({ status: 200, success: true, message: 'Order Placed successfully' })
