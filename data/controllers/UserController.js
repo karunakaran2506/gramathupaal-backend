@@ -1,4 +1,5 @@
 const Users = require('../model/users');
+const Customeraddress = require('../model/customeraddress');
 const Session = require('../model/userSession');
 const Order = require('../model/orders');
 const helper = require('../common/helper');
@@ -33,7 +34,7 @@ const UserLogin = async function (req, res) {
 
             try {
                 // to check whether user exist
-                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Storeclerk', isdeleted: 0 });
+                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Storeclerk', isdeleted: 0 })
 
                 if (findUser) {
                     // compare the password using bcrypt
@@ -43,7 +44,15 @@ const UserLogin = async function (req, res) {
 
                         let token = helper.signToken(findUser.id);
 
-                        resolve({ status: 200, success: true, user: findUser, token: token, message: 'Login Successful' })
+                        let user = {
+                            name: findUser.name,
+                            store: findUser.store,
+                            phone: findUser.phone,
+                            email: findUser.email,
+                            id: findUser.id,
+                        };
+
+                        resolve({ status: 200, success: true, user, token: token, message: 'Login Successful' })
                     }
                     else {
                         reject({ status: 200, success: false, message: 'Incorrect Password' })
@@ -206,7 +215,15 @@ const AdminLogin = async function (req, res) {
 
                         let token = helper.signToken(findUser.id);
 
-                        resolve({ status: 200, success: true, user: findUser, token: token, message: 'Login Successful' })
+                        let user = {
+                            name: findUser.name,
+                            store: findUser.store,
+                            phone: findUser.phone,
+                            email: findUser.email,
+                            id: findUser.id,
+                        };
+
+                        resolve({ status: 200, success: true, user, token: token, message: 'Login Successful' })
                     }
                     else {
                         reject({ status: 200, success: false, message: 'Incorrect Password' })
@@ -566,6 +583,26 @@ const CustomerSignUp = async function (req, res) {
                         store: req.body.store,
                         createdat: new Date()
                     }).then(async (data) => {
+
+                        const customeraddress = JSON.parse(req.body.customeraddress);
+
+                        if (customeraddress.length) {
+                            for (let i = 0; i < customeraddress.length; i++) {
+                                const address = customeraddress[i];
+                                let createUser = await Customeraddress.create({
+                                    addressline1: address.addressline1,
+                                    addressline2: address.addressline2,
+                                    pincode: address.pincode,
+                                    landmark: address.landmark,
+                                    area: address.area,
+                                    city: address.city,
+                                    state: address.state,
+                                    country: address.country,
+                                    customer: data._id,
+                                    createdat: new Date()
+                                })
+                            }
+                        }
                         resolve({ status: 200, success: true, message: 'Customer created successfully' })
                     })
                 }
@@ -616,6 +653,168 @@ const ViewCustomerbyStore = async function (req, res) {
 
 }
 
+const CreateDeliveryUser = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        // main code
+        try {
+
+            let validParams = req.body.phone && req.body.name && req.body.password;
+
+            if (validParams) {
+
+                let findUser = await Users.findOne({ phone: req.body.phone })
+
+                if (findUser) {
+                    reject({ status: 200, success: false, message: 'User already exist' })
+                }
+
+                else {
+
+                    let hashedPassword = helper.hashPassword(req.body.password);
+                    let createUser = await Users.create({
+                        name: req.body.name,
+                        phone: req.body.phone,
+                        email: req.body.email,
+                        password: hashedPassword,
+                        role: 'Deliveryman',
+                        store: req.body.store,
+                        adhar: req.body.adhar,
+                        createdat: new Date()
+                    }).then(async (data) => {
+                        resolve({ status: 200, success: true, message: 'User created successfully' })
+                    })
+                }
+
+            }
+            else {
+                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+            }
+
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ViewDeliverymanbyStore = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+            const result = await Users.find({ store: req.body.store, role: 'Deliveryman' })
+
+            resolve({ status: 200, success: true, deliveryman: result, message: 'Delivery man list' })
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, deliveryman: data.deliveryman });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const DeliveryManLogin = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.phone && req.body.password;
+
+        if (validParams) {
+
+            try {
+                // to check whether user exist
+                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Deliveryman', isdeleted: 0 });
+
+                if (findUser) {
+                    // compare the password using bcrypt
+                    let passwordCheck = helper.checkPassword(req.body.password, findUser.password);
+
+                    if (passwordCheck) {
+
+                        let token = helper.signToken(findUser.id);
+
+                        let user = {
+                            name: findUser.name,
+                            store: findUser.store,
+                            phone: findUser.phone,
+                            email: findUser.email,
+                            id: findUser.id,
+                        };
+
+                        resolve({ status: 200, success: true, user, token: token, message: 'Login Successful' })
+                    }
+                    else {
+                        reject({ status: 200, success: false, message: 'Incorrect Password' })
+                    }
+                }
+
+                else {
+                    reject({ status: 200, success: false, message: 'User does not exist' });
+                }
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide Valid data' })
+        }
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, user: data.user, token: data.token });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const ViewCustomerAddress = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+            const result = await Customeraddress.find({ customer: req.body.customer })
+
+            resolve({ status: 200, success: true, address: result, message: 'Customer address list' })
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, address: data.address });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
     uploadImg,
     UserLogin,
@@ -629,5 +828,9 @@ module.exports = {
     ViewUserPastSessions,
     DeleteUser,
     CustomerSignUp,
-    ViewCustomerbyStore
+    ViewCustomerbyStore,
+    CreateDeliveryUser,
+    ViewDeliverymanbyStore,
+    DeliveryManLogin,
+    ViewCustomerAddress
 };

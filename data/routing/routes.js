@@ -9,6 +9,7 @@ const StockManagementController = require('../controllers/StockManagementControl
 const UserSessionController = require('../controllers/UserSessionController');
 const MilkcardController = require('../controllers/MilkcardController');
 const ProducttokenController = require('../controllers/ProducttokenController');
+const SubscriptionController = require('../controllers/SubscriptionController');
 
 // User Functions
 router.post('/userLogin', UserController.UserLogin);
@@ -21,8 +22,12 @@ router.post('/editUser', UserController.uploadImg, UserController.EditUser);
 router.post('/editUserWithoutImage', UserController.uploadImg, UserController.EditUserWithoutImage);
 router.post('/viewUserPastSessions', UserController.ViewUserPastSessions);
 router.post('/deleteUser', UserController.DeleteUser);
-router.post('/customerSignUp', UserController.CustomerSignUp);
+router.post('/customerSignUp', UserController.CustomerSignUp); 
 router.get('/viewCustomerbyStore', UserController.ViewCustomerbyStore);
+router.post('/deliveryUserSignup', UserController.CreateDeliveryUser);
+router.post('/viewDeliverymanbyStore', UserController.ViewDeliverymanbyStore);
+router.post('/deliveryLogin', UserController.DeliveryManLogin);
+router.post('/viewCustomerAddress', UserController.ViewCustomerAddress);
 
 // Store Functions 
 router.post('/createStore', StoreController.CreateStore);
@@ -79,5 +84,15 @@ router.post('/createProductToken', ProducttokenController.CreateProductToken);
 router.post('/listProductTokenbyCustomer', ProducttokenController.ListProductTokenbyCustomer);
 router.post('/listProductTokenbyStore', ProducttokenController.ListProductTokenbyStore);
 router.post('/listTokenHistorybyStore', ProducttokenController.ListTokenHistorybyStore);
+
+// Subscription order function
+router.post('/createSubscriptionorder', SubscriptionController.CreateSubscriptionorder);
+router.post('/createSubscriptionpack', SubscriptionController.CreateSubscriptionpack);
+router.post('/listSubscriptionorderbyCustomer', SubscriptionController.ListSubscriptionorderbyCustomer);
+router.get('/listSubscriptionpack', SubscriptionController.ListSubscriptionpack);
+router.post('/listSubscriptionorderbyStore', SubscriptionController.ListSubscriptionorderbyStore);
+router.post('/createDeliveryavailablity', SubscriptionController.CreateDeliveryavailablity);
+router.get('/listordersbyDeliveryman', SubscriptionController.ListordersbyDeliveryman);
+router.post('/createDeliveryEntry', SubscriptionController.CreateDeliveryEntry);
 
 module.exports = router;
