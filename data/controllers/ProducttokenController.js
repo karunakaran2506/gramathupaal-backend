@@ -48,7 +48,8 @@ const CreateProductToken = async function (req, res) {
                     quantity: req.body.quantity,
                     paymentMethod: req.body.paymentMethod,
                     store: req.body.store,
-                    soldby: user
+                    soldby: user,
+                    createdat: findDate
                 })
 
                 const result = await ProductToken.findOne({ customer, product: req.body.product })

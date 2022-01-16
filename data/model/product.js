@@ -32,7 +32,7 @@ const ProductSchema = new Schema({
         ref: 'store'
     },
     quantity: {
-        type: String,
+        type: Number,
         required: true
     },
     unit: {

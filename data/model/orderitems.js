@@ -11,7 +11,7 @@ const OrderitemSchema = new Schema({
         ref: 'product'
     },
     quantity: {
-        type: String,
+        type: Number,
         required: true
     },
     totalamount: {

@@ -9,7 +9,8 @@ const DeliveryEntrySchema = new Schema({
     },
     isdelivered: {
         type: Boolean,
-        required: true
+        required: true,
+        default: false
     },
     deliveredby: {
         type: mongoose.Schema.Types.ObjectId,

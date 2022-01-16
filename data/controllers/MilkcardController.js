@@ -113,7 +113,8 @@ const CreateMilkcardEntry = async function (req, res) {
                     price: req.body.price,
                     paymentMethod: req.body.paymentMethod,
                     store: req.body.store,
-                    soldby: user
+                    soldby: user,
+                    createdat: findDate
                 })
 
                 const result = await Milkcardentry.findOne({ customer, milkcard: req.body.milkcard })

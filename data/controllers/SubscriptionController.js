@@ -186,7 +186,7 @@ const CreateDeliveryavailablity = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
-        let validParams = req.body.entrydate && req.body.subscriptionpackorder && req.body.availablity;
+        let validParams = req.body.entrydate && req.body.subscriptionpackorder;
 
         if (validParams) {
             try {
@@ -291,7 +291,7 @@ const CreateDeliveryEntry = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
-        let validParams = req.body.isdelivered && req.body.subscriptionpackorder;
+        let validParams = req.body.subscriptionpackorder;
 
         if (validParams) {
             try {
