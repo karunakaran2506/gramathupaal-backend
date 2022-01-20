@@ -1,34 +1,35 @@
 const mongoose = require('mongoose');
+const { Categorytype } = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const CategorySchema = new Schema({
-    name : {
-        type : String,
-        required : true
+    name: {
+        type: String,
+        required: true
     },
-    categorytype : {
-        type : String,
-        enum : ['milk', 'others'],
-        default : 'others',
-        required : true
+    categorytype: {
+        type: String,
+        enum: Categorytype,
+        default: 'others',
+        required: true
     },
-    isactive : {
-        type : Number,
-        default : 1
+    isactive: {
+        type: Number,
+        default: 1
     },
-    store : {
-        type : mongoose.Schema.Types.ObjectId,
-        required : true,
-        ref : 'store'
+    store: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'store'
     },
-    isDeleted : {
-        type : Boolean,
-        default : false
+    isDeleted: {
+        type: Boolean,
+        default: false
     },
-    createdat : {
-        type : Date,
-        required : true,
-        default : new Date()
+    createdat: {
+        type: Date,
+        required: true,
+        default: new Date()
     }
 
 })

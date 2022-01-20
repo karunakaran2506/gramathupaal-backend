@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Paymentmethod2 } = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const TokenhistorySchema = new Schema({
@@ -17,7 +18,7 @@ const TokenhistorySchema = new Schema({
     },
     paymentMethod : {
         type : String,
-        enum : [ 'credit', 'free', 'cash', 'card', 'upi'],
+        enum : Paymentmethod2,
         required : true
     },
     store: {

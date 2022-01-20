@@ -1,6 +1,7 @@
 const helper = require('../common/helper');
 const Subscriptionpack = require('../model/subscriptionpack');
 const Subscriptionorders = require('../model/subscriptionorders');
+const Subscriptionhistory = require('../model/subscriptionhistory');
 const Deliveryavailablity = require('../model/deliveryavailablity');
 const Deliveryentry = require('../model/deliveryentry');
 const Users = require('../model/users');
@@ -44,12 +45,52 @@ const CreateSubscriptionpack = async function (req, res) {
 
 }
 
+const EditSubscriptionpack = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.name && req.body.price && req.body.validity && req.body.subscriptionpack;
+
+        if (validParams) {
+            try {
+                let subscriptionpack = await Subscriptionpack.updateOne({ _id: req.body.subscriptionpack }, {
+                    $set: {
+                        name: req.body.name,
+                        price: req.body.price,
+                        validity: req.body.validity,
+                        product: req.body.product
+                    }
+                }).then((data) => {
+                    resolve({ status: 200, success: true, message: 'Subscriptionpack edited successfully' })
+                })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 const ListSubscriptionpack = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
         try {
-            let product = await Subscriptionpack.find({}).populate('product')
+            let product = await Subscriptionpack.find({})
+                .populate('product', 'name quantity unit price')
                 .then((data) => {
                     resolve({ status: 200, success: true, message: 'Subscription pack list', subscriptionpack: data })
                 })
@@ -78,11 +119,17 @@ const CreateSubscriptionorder = async function (req, res) {
 
         if (validParams) {
             try {
-
-                let customer;
                 let findDate = new Date();
 
-                const result = await Subscriptionorders.findOne({ customer, subscriptionpack: req.body.subscriptionpack })
+                await Subscriptionhistory.create({
+                    customer: req.body.customer,
+                    store: req.body.store,
+                    price: req.body.price,
+                    subscriptionpack: req.body.subscriptionpack,
+                    createdat: findDate
+                })
+
+                const result = await Subscriptionorders.findOne({ customer: req.body.customer, subscriptionpack: req.body.subscriptionpack })
 
                 if (result) {
                     const updatedValidity = Number(result.validity) + Number(req.body.validity);
@@ -126,12 +173,90 @@ const CreateSubscriptionorder = async function (req, res) {
 
 }
 
+const EditSubscriptionorder = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.subscriptionorder && req.body.deliveryman;
+
+        if (validParams) {
+            try {
+                let subscriptionpackorder = await Subscriptionorders.updateOne({ _id: req.body.subscriptionorder }, 
+                    {
+                        $set: {
+                            deliveryman: req.body.deliveryman,
+                            customeraddress: req.body.customeraddress
+                        }
+                    })
+                    .then((data) => {
+                        resolve({ status: 200, success: true, message: 'Subscription order created successfully' })
+                    })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const DeactivateSubscriptionorder = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        let validParams = req.body.subscriptionorder;
+
+        if (validParams) {
+            try {
+                let subscriptionpackorder = await Subscriptionorders.updateOne({ _id: req.body.subscriptionorder }, 
+                    {
+                        $set: {
+                            validity: 0
+                        }
+                    })
+                    .then((data) => {
+                        resolve({ status: 200, success: true, message: 'Subscription order deactivated successfully' })
+                    })
+            } catch (error) {
+                reject({ status: 200, success: false, message: error.message })
+            }
+        }
+        else {
+            reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 const ListSubscriptionorderbyCustomer = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
         try {
-            let product = await Subscriptionorders.find({ customer: req.body.customer }).populate('subscriptionpack')
+            let product = await Subscriptionorders.find({ customer: req.body.customer })
+                .populate('subscriptionpack', 'name validity price')
                 .then((data) => {
                     resolve({ status: 200, success: true, message: 'Subscription order list', order: data })
                 })
@@ -152,13 +277,13 @@ const ListSubscriptionorderbyCustomer = async function (req, res) {
 
 }
 
-const ListSubscriptionorderbyStore = async function (req, res) {
+const ListActiveSubscriptionorderbyStore = async function (req, res) {
 
     const promise = new Promise(async function (resolve, reject) {
 
         try {
-            let product = await Subscriptionorders.find({ store: req.body.store })
-                .populate('subscriptionpack', 'name validity')
+            let product = await Subscriptionorders.find({ store: req.body.store, validity: { $gt: 0 } })
+                .populate('subscriptionpack', 'name validity price')
                 .populate('customer', 'name phone')
                 .populate('customeraddress')
                 .populate('deliveryman', 'name phone')
@@ -239,7 +364,7 @@ const ListordersbyDeliveryman = async function (req, res) {
                     select: 'name',
                     populate: {
                         path: 'product',
-                        select: 'name quantity unit'
+                        select: 'name quantity unit milktype'
                     }
                 })
                 .populate('customer', 'name phone')
@@ -347,13 +472,50 @@ const CreateDeliveryEntry = async function (req, res) {
 
 }
 
+const ListSubscriptionHistorybyStore = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+            let newdate = req.body.date;
+            const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+            const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+            let product = await Subscriptionhistory.find({ store: req.body.store, createdat: { $gte: start, $lt: end } })
+                .select('price subscriptionpack customer createdat')
+                .populate('subscriptionpack', 'name')
+                .populate('customer', 'name phone')
+                .then((data) => {
+                    resolve({ status: 200, success: true, message: 'Subscription history list', history: data })
+                })
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, history: data.history });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
     CreateSubscriptionpack,
+    EditSubscriptionpack,
     ListSubscriptionpack,
     CreateSubscriptionorder,
+    EditSubscriptionorder,
+    DeactivateSubscriptionorder,
     ListSubscriptionorderbyCustomer,
-    ListSubscriptionorderbyStore,
+    ListActiveSubscriptionorderbyStore,
     CreateDeliveryavailablity,
     ListordersbyDeliveryman,
-    CreateDeliveryEntry
+    CreateDeliveryEntry,
+    ListSubscriptionHistorybyStore
 }

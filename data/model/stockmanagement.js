@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Categorytype, Stocktype} = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const StockManagementSchema = new Schema({
@@ -9,7 +10,7 @@ const StockManagementSchema = new Schema({
     },
     stocktype :{
         type: String,
-        enum : ['in', 'out', 'byproduct'],
+        enum : Stocktype,
         required : true
     },
     quantity: {
@@ -27,7 +28,7 @@ const StockManagementSchema = new Schema({
     },
     producttype : {
         type : String,
-        enum: ['milk', 'others'],
+        enum: Categorytype,
         required : true
     },
     entrydate: {

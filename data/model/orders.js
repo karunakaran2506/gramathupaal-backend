@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Paymentmethod1 } = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const OrderSchema = new Schema({
@@ -21,7 +22,7 @@ const OrderSchema = new Schema({
     },
     paymentMethod : {
         type : String,
-        enum : [ 'credit', 'free', 'cash', 'card', 'upi', 'token', 'milkcard'],
+        enum : Paymentmethod1,
         required : true
     },
     subtotal: {

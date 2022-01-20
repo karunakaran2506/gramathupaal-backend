@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Cashmanagementtype } = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const CashManagementSchema = new Schema({
@@ -8,7 +9,7 @@ const CashManagementSchema = new Schema({
     },
     type: {
         type: String,
-        enum: ["sales", "expenses"],
+        enum: Cashmanagementtype,
         default: null
     },
     amount: {

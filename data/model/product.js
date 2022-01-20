@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Milktype, Units, Categorytype } = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const ProductSchema = new Schema({
@@ -12,12 +13,12 @@ const ProductSchema = new Schema({
     },
     type : {
         type : String,
-        enum: ['milk', 'others'],
+        enum: Categorytype,
         required : true
     },
     milktype: {
         type: String,
-        enum: ['buffalomilk', 'a1milk', 'a2milk'],
+        enum: Milktype,
     },
     description: {
         type: String
@@ -37,7 +38,7 @@ const ProductSchema = new Schema({
     },
     unit: {
         type: String,
-        enum: ['gram', 'kilogram', 'litre', 'millilitre', 'piece'],
+        enum: Units,
         required: true
     },
     price: {

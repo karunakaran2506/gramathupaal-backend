@@ -578,6 +578,7 @@ const CustomerSignUp = async function (req, res) {
                     let createUser = await Users.create({
                         name: req.body.name,
                         phone: req.body.phone,
+                        nickname: req.body.nickname,
                         password: hashedPassword,
                         role: 'Customer',
                         store: req.body.store,
@@ -587,9 +588,12 @@ const CustomerSignUp = async function (req, res) {
                         const customeraddress = JSON.parse(req.body.customeraddress);
 
                         if (customeraddress.length) {
+
+                            let addressList = [];
+
                             for (let i = 0; i < customeraddress.length; i++) {
                                 const address = customeraddress[i];
-                                let createUser = await Customeraddress.create({
+                                let createAddress = await Customeraddress.create({
                                     addressline1: address.addressline1,
                                     addressline2: address.addressline2,
                                     pincode: address.pincode,
@@ -601,11 +605,104 @@ const CustomerSignUp = async function (req, res) {
                                     customer: data._id,
                                     createdat: new Date()
                                 })
+                                addressList.push(createAddress._id);
                             }
+
+                            await Users.findByIdAndUpdate(data._id,
+                                { customeraddress: addressList },
+                                { new: true, useFindAndModify: false }
+                            )
                         }
                         resolve({ status: 200, success: true, message: 'Customer created successfully' })
                     })
                 }
+
+            }
+            else {
+                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+            }
+
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const EditCustomer = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+
+            let validParams = req.body.phone && req.body.name;
+
+            if (validParams) {
+
+                let createUser = await Users.updateOne({ _id: req.body.customer }, {
+                    $set: {
+                        name: req.body.name,
+                        nickname: req.body.nickname,
+                        store: req.body.store
+                    }
+                }).then(async (data) => {
+
+                    const customeraddress = JSON.parse(req.body.customeraddress);
+
+                    if (customeraddress.length) {
+
+                        let addressList = [];
+
+                        for (let i = 0; i < customeraddress.length; i++) {
+                            const address = customeraddress[i];
+                            if (address.id) {
+                                await Customeraddress.updateOne({ _id: address.id }, {
+                                    $set: {
+                                        addressline1: address.addressline1,
+                                        addressline2: address.addressline2,
+                                        pincode: address.pincode,
+                                        landmark: address.landmark,
+                                        area: address.area,
+                                        city: address.city,
+                                        state: address.state,
+                                        country: address.country
+                                    }
+                                })
+                                addressList.push(address.id);
+                            } else {
+                                let createAddress = await Customeraddress.create({
+                                    addressline1: address.addressline1,
+                                    addressline2: address.addressline2,
+                                    pincode: address.pincode,
+                                    landmark: address.landmark,
+                                    area: address.area,
+                                    city: address.city,
+                                    state: address.state,
+                                    country: address.country,
+                                    customer: req.body.customer,
+                                    createdat: new Date()
+                                })
+                                addressList.push(createAddress._id);
+                            }
+                        }
+
+                        await Users.findByIdAndUpdate(req.body.customer,
+                            { customeraddress: addressList },
+                            { new: true, useFindAndModify: false }
+                        )
+                    }
+                    resolve({ status: 200, success: true, message: 'Customer edited successfully' })
+                })
 
             }
             else {
@@ -635,8 +732,10 @@ const ViewCustomerbyStore = async function (req, res) {
 
         try {
             const result = await Users.find({ store: req.headers.store, role: 'Customer' })
-
+                .select('name phone store nickname customeraddress')
+                .populate('customeraddress')
             resolve({ status: 200, success: true, customer: result, message: 'Customer list' })
+
         } catch (error) {
             reject({ status: 200, success: false, message: error.message })
         }
@@ -686,6 +785,60 @@ const CreateDeliveryUser = async function (req, res) {
                         resolve({ status: 200, success: true, message: 'User created successfully' })
                     })
                 }
+
+            }
+            else {
+                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+            }
+
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
+const EditDeliveryUser = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        // main code
+        try {
+
+            let validParams = req.body.deliveryuser && req.body.phone && req.body.name;
+
+            if (validParams) {
+
+                let bodyParams = {
+                    name: req.body.name,
+                    email: req.body.email,
+                    store: req.body.store,
+                    adhar: req.body.adhar
+                };
+
+                if (req.body.password) {
+                    let hashedPassword = helper.hashPassword(req.body.password);
+                    bodyParams = {
+                        ...bodyParams,
+                        password: hashedPassword
+                    }
+                }
+
+                await Users.updateOne({ _id: req.body.deliveryuser }, {
+                    $set: bodyParams
+                }).then(async (data) => {
+                    resolve({ status: 200, success: true, message: 'User edited successfully' })
+                })
 
             }
             else {
@@ -828,8 +981,10 @@ module.exports = {
     ViewUserPastSessions,
     DeleteUser,
     CustomerSignUp,
+    EditCustomer,
     ViewCustomerbyStore,
     CreateDeliveryUser,
+    EditDeliveryUser,
     ViewDeliverymanbyStore,
     DeliveryManLogin,
     ViewCustomerAddress

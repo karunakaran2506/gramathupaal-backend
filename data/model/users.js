@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Usertypes } = require('../common/constants');
 const Schema = mongoose.Schema;
 
 const UserSchema = new Schema({
@@ -38,7 +39,7 @@ const UserSchema = new Schema({
     },
     role : {
         type : String,
-        enum : ['Superadmin', 'Storeclerk', 'Customer', 'Deliveryman'],
+        enum : Usertypes,
         required : true
     },
     store: {
@@ -49,6 +50,17 @@ const UserSchema = new Schema({
         type: String,
         default: null
     },
+    nickname : {
+        type : String,
+        require : true,
+        default: null
+    },
+    customeraddress: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'customeraddress'
+        }
+    ],
     player_id:{
 		type: String,
 		default:null
