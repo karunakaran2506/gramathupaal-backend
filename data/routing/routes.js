@@ -11,6 +11,7 @@ const MilkcardController = require('../controllers/MilkcardController');
 const ProducttokenController = require('../controllers/ProducttokenController');
 const SubscriptionController = require('../controllers/SubscriptionController');
 const LeadsController = require('../controllers/LeadsController');
+const MilkSupplyController = require('../controllers/MilkSupplyController');
 
 // User Functions
 router.post('/userLogin', UserController.UserLogin);
@@ -101,6 +102,10 @@ router.post('/listActiveSubscriptionorderbyStore', SubscriptionController.ListAc
 router.post('/createDeliveryavailablity', SubscriptionController.CreateDeliveryavailablity);
 router.get('/listordersbyDeliveryman', SubscriptionController.ListordersbyDeliveryman);
 router.post('/createDeliveryEntry', SubscriptionController.CreateDeliveryEntry);
+router.post('/milkSupplyEntry', MilkSupplyController.MilkSupplyEntry);
+router.post('/listTodayMilkSupplies', MilkSupplyController.ListTodayMilkSupplies);
+router.get('/getMilkSupplybyDeliveryman', MilkSupplyController.GetMilkSupplybyDeliveryman);
+router.get('/listDeliveryEntries', SubscriptionController.ListDeliveryEntries);
 
 // Leads function
 router.post('/createLead', LeadsController.CreateLead);

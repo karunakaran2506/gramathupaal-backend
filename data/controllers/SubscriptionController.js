@@ -181,7 +181,7 @@ const EditSubscriptionorder = async function (req, res) {
 
         if (validParams) {
             try {
-                let subscriptionpackorder = await Subscriptionorders.updateOne({ _id: req.body.subscriptionorder }, 
+                let subscriptionpackorder = await Subscriptionorders.updateOne({ _id: req.body.subscriptionorder },
                     {
                         $set: {
                             deliveryman: req.body.deliveryman,
@@ -220,7 +220,7 @@ const DeactivateSubscriptionorder = async function (req, res) {
 
         if (validParams) {
             try {
-                let subscriptionpackorder = await Subscriptionorders.updateOne({ _id: req.body.subscriptionorder }, 
+                let subscriptionpackorder = await Subscriptionorders.updateOne({ _id: req.body.subscriptionorder },
                     {
                         $set: {
                             validity: 0
@@ -505,6 +505,37 @@ const ListSubscriptionHistorybyStore = async function (req, res) {
 
 }
 
+const ListDeliveryEntries = async function (req, res) {
+
+    const promise = new Promise(async function (resolve, reject) {
+
+        try {
+
+            let newdate = new Date();
+            const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+            const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+
+            await Deliveryentry.find({ isdelivered: true, entrydate: { $gte: start, $lt: end } })
+                .then((data) => {
+                    resolve({ status: 200, success: true, message: 'Delivery entry list', entry: result })
+                })
+        } catch (error) {
+            reject({ status: 200, success: false, message: error.message })
+        }
+
+    });
+
+    promise
+
+        .then(function (data) {
+            res.status(data.status).send({ success: data.success, message: data.message, entry: data.entry });
+        })
+        .catch(function (error) {
+            res.status(error.status).send({ success: error.success, message: error.message });
+        })
+
+}
+
 module.exports = {
     CreateSubscriptionpack,
     EditSubscriptionpack,
@@ -517,5 +548,6 @@ module.exports = {
     CreateDeliveryavailablity,
     ListordersbyDeliveryman,
     CreateDeliveryEntry,
-    ListSubscriptionHistorybyStore
+    ListSubscriptionHistorybyStore,
+    ListDeliveryEntries
 }
