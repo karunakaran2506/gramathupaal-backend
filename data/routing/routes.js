@@ -12,6 +12,7 @@ const ProducttokenController = require('../controllers/ProducttokenController');
 const SubscriptionController = require('../controllers/SubscriptionController');
 const LeadsController = require('../controllers/LeadsController');
 const MilkSupplyController = require('../controllers/MilkSupplyController');
+const CowController = require('../controllers/CowController');
 
 // User Functions
 router.post('/userLogin', UserController.UserLogin);
@@ -111,5 +112,13 @@ router.get('/listDeliveryEntries', SubscriptionController.ListDeliveryEntries);
 router.post('/createLead', LeadsController.CreateLead);
 router.post('/editLead', LeadsController.EditLead);
 router.post('/listLeads', LeadsController.ListLeads);
+
+// Cow functions
+router.post('/addCow', CowController.AddCow);
+router.post('/editCow', CowController.EditCow);
+router.get('/listCow', CowController.ViewCow);
+router.post('/addVaccination', CowController.AddVaccination);
+router.post('/addCowWeight', CowController.AddCowWeight);
+router.post('/addCowMilk', CowController.AddCowMilk);
 
 module.exports = router;

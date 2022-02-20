@@ -7,6 +7,8 @@ const Milktype = ['buffalomilk', 'a1milk', 'a2milk'];
 const Units = ['gram', 'kilogram', 'litre', 'millilitre', 'piece'];
 const Stocktype = ['in', 'out', 'byproduct'];
 const Usertypes = ['Superadmin', 'Storeclerk', 'Customer', 'Deliveryman'];
+const CowType = ['cow', 'calf'];
+const CowGender = ['male', 'female'];
 
 module.exports = {
     secret,
@@ -17,5 +19,7 @@ module.exports = {
     Milktype,
     Units,
     Stocktype,
-    Usertypes
+    Usertypes,
+    CowType,
+    CowGender
 }

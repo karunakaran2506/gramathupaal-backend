@@ -41,6 +41,7 @@ const CreateProduct = async function (req, res) {
                         image: req.file.path,
                         type: req.body.type,
                         quantity: req.body.quantity,
+                        milktype: req.body.milktype,
                         unit: req.body.unit,
                         price: req.body.price,
                         store: req.body.store,
@@ -139,6 +140,7 @@ const EditProduct = async function (req, res) {
                                     unit: req.body.unit,
                                     price: req.body.price,
                                     store: req.body.store,
+                                    milktype: req.body.milktype,
                                 }
                             })
 
@@ -198,6 +200,7 @@ const EditProductwithoutImage = async function (req, res) {
                                     unit: req.body.unit,
                                     price: req.body.price,
                                     store: req.body.store,
+                                    milktype: req.body.milktype,
                                 }
                             })
 

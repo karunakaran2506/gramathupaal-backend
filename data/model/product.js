@@ -11,14 +11,15 @@ const ProductSchema = new Schema({
         type: String,
         required: true
     },
-    type : {
-        type : String,
+    type: {
+        type: String,
         enum: Categorytype,
-        required : true
+        required: true
     },
     milktype: {
         type: String,
         enum: Milktype,
+        default: null
     },
     description: {
         type: String
