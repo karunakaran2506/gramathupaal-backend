@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
-const { Categorytype, Stocktype} = require('../common/constants');
+const mongoose = require("mongoose");
+const { FeedStocktype } = require("../common/constants");
 const Schema = mongoose.Schema;
 
-const StockManagementSchema = new Schema(
+const FeedStockSchema = new Schema(
   {
-    product: {
+    feed: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "product",
+      ref: "feed",
       required: true,
     },
     stocktype: {
       type: String,
-      enum: Stocktype,
+      enum: FeedStocktype,
       required: true,
     },
     quantity: {
@@ -23,17 +23,9 @@ const StockManagementSchema = new Schema(
       ref: "store",
       required: true,
     },
-    order: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "order",
-    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
-    },
-    producttype: {
-      type: String,
-      enum: Categorytype,
       required: true,
     },
     entrydate: {
@@ -51,4 +43,4 @@ const StockManagementSchema = new Schema(
   }
 );
 
-module.exports = StockManagement = mongoose.model('stockmanagement', StockManagementSchema);
+module.exports = FeedStock = mongoose.model("feedstock", FeedStockSchema);

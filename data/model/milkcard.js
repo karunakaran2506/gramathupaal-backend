@@ -19,6 +19,10 @@ const MilkcardSchema = new Schema({
         required : true,
         ref : 'product'
     },
+    isdeleted : {
+        type : Number,
+        default : 0
+    },
     createdat : {
         type : Date,
         required : true,

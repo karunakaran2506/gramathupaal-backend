@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/karunakaran2506/gramathupaal-backend#readme",
   "dependencies": {
+    "aws-sdk": "^2.1096.0",
     "axios": "^0.21.4",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.19.0",
@@ -29,14 +30,16 @@
     "http": "0.0.1-security",
     "https": "^1.0.0",
     "jsonwebtoken": "^8.5.1",
+    "moment": "^2.29.4",
     "mongodb": "^3.7.1",
     "mongoose": "^5.13.9",
     "multer": "^1.4.3",
-    "multer-s3": "^2.9.0",
+    "multer-s3": "^2.10.0",
     "node-cron": "^3.0.0",
     "nodemon": "^2.0.12",
     "otp-generator": "^3.0.0",
     "socket.io": "^4.2.0",
-    "unique-random": "^3.0.0"
+    "unique-random": "^3.0.0",
+    "uuid": "^8.3.2"
   }
 }

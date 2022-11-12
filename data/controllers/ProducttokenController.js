@@ -180,9 +180,44 @@ const ListTokenHistorybyStore = async function (req, res) {
 
 }
 
+const ListCustomerProductToken = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      let product = await ProductToken.find({ customer: req.body.customer })
+        .populate("product", "_id name unit quantity")
+        .then((data) => {
+          resolve({
+            status: 200,
+            success: true,
+            message: "Product Token list",
+            token: data,
+          });
+        });
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        token: data.token,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
 module.exports = {
-    CreateProductToken,
-    ListProductTokenbyStore,
-    ListProductTokenbyCustomer,
-    ListTokenHistorybyStore
-}
+  CreateProductToken,
+  ListProductTokenbyStore,
+  ListProductTokenbyCustomer,
+  ListTokenHistorybyStore,
+  ListCustomerProductToken,
+};

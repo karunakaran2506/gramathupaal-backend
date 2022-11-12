@@ -6,20 +6,30 @@ const Paymentmethod2 = [ 'credit', 'free', 'cash', 'card', 'upi'];
 const Milktype = ['buffalomilk', 'a1milk', 'a2milk'];
 const Units = ['gram', 'kilogram', 'litre', 'millilitre', 'piece'];
 const Stocktype = ['in', 'out', 'byproduct'];
-const Usertypes = ['Superadmin', 'Storeclerk', 'Customer', 'Deliveryman'];
-const CowType = ['cow', 'calf'];
+const FeedStocktype = ["in", "out"];
+const FeedUnit = ["kilogram", "pack", "tonnage"];
+const Usertypes = ['Superadmin', 'Storeclerk', 'Customer', 'Deliveryman', 'Milkentryman'];
+const CowType = ['cow', , 'hiefer', 'calf'];
 const CowGender = ['male', 'female'];
+const MediaContentTypes = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+};
 
 module.exports = {
-    secret,
-    Cashmanagementtype,
-    Categorytype,
-    Paymentmethod1,
-    Paymentmethod2,
-    Milktype,
-    Units,
-    Stocktype,
-    Usertypes,
-    CowType,
-    CowGender
-}
+  secret,
+  Cashmanagementtype,
+  Categorytype,
+  Paymentmethod1,
+  Paymentmethod2,
+  Milktype,
+  Units,
+  Stocktype,
+  FeedStocktype,
+  Usertypes,
+  CowType,
+  CowGender,
+  FeedUnit,
+  MediaContentTypes,
+};

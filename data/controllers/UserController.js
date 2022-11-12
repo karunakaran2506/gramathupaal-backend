@@ -1,991 +1,1628 @@
-const Users = require('../model/users');
-const Customeraddress = require('../model/customeraddress');
-const Session = require('../model/userSession');
-const Order = require('../model/orders');
-const helper = require('../common/helper');
-const multer = require('multer');
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './data/public/images/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
-    }
-});
+const Users = require("../model/users");
+const Customeraddress = require("../model/customeraddress");
+const Session = require("../model/userSession");
+const Order = require("../model/orders");
+const helper = require("../common/helper");
+const multer = require("multer");
+const multerS3 = require("multer-s3");
+const s3 = require("../common/appConfig").s3;
+const { v4 } = require("uuid");
 
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype == 'image/jpeg' || file.mimetype == 'image/png') {
-        cb(null, true);
-    } else {
-        cb(null, false);
-    }
-}
+  if (file.mimetype == "image/jpeg" || file.mimetype == "image/png") {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
 
-const uploadImg = multer({ storage: storage, fileFilter: fileFilter }).single('image');
+const uploadImg = multer({
+  storage: multerS3({
+    s3,
+    acl: "public-read",
+    bucket: process.env.BUCKETNAME,
+    key: function (req, file, cb) {
+      const extension = file.originalname.split(".").pop();
+      filePath = `gramathupaal/user-images/${Date.now().toString()}-${v4().replace(
+        /-/g,
+        ""
+      )}.${extension}`;
+      cb(null, filePath);
+    },
+  }),
+  fileFilter: fileFilter,
+}).single("image");
 
-const UserLogin = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        let validParams = req.body.phone && req.body.password;
-
-        if (validParams) {
-
-            try {
-                // to check whether user exist
-                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Storeclerk', isdeleted: 0 })
-
-                if (findUser) {
-                    // compare the password using bcrypt
-                    let passwordCheck = helper.checkPassword(req.body.password, findUser.password);
-
-                    if (passwordCheck) {
-
-                        let token = helper.signToken(findUser.id);
-
-                        let user = {
-                            name: findUser.name,
-                            store: findUser.store,
-                            phone: findUser.phone,
-                            email: findUser.email,
-                            id: findUser.id,
-                        };
-
-                        resolve({ status: 200, success: true, user, token: token, message: 'Login Successful' })
-                    }
-                    else {
-                        reject({ status: 200, success: false, message: 'Incorrect Password' })
-                    }
-                }
-
-                else {
-                    reject({ status: 200, success: false, message: 'User does not exist' });
-                }
-            } catch (error) {
-                reject({ status: 200, success: false, message: error.message })
-            }
-        }
-        else {
-            reject({ status: 200, success: false, message: 'Provide Valid data' })
-        }
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, user: data.user, token: data.token });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
-
-const UserSignUp = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        // main code
-        try {
-
-            let validParams = req.body.phone && req.body.name && req.body.password && req.body.role;
-
-            if (validParams) {
-
-                let findUser = await Users.findOne({ phone: req.body.phone })
-
-                if (findUser) {
-                    reject({ status: 200, success: false, message: 'User already exist' })
-                }
-
-                else {
-
-                    let hashedPassword = helper.hashPassword(req.body.password);
-                    let createUser = await Users.create({
-                        name: req.body.name,
-                        phone: req.body.phone,
-                        email: req.body.email,
-                        password: hashedPassword,
-                        role: req.body.role,
-                        store: req.body.store,
-                        adhar: req.body.adhar,
-                        createdat: new Date()
-                    }).then(async (data) => {
-                        resolve({ status: 200, success: true, message: 'User created successfully' })
-                    })
-                }
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
-
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
-
-const UserSignupWithImage = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        // main code
-        try {
-
-            let validParams = req.body.phone && req.body.name && req.body.password && req.body.role;
-
-            if (validParams) {
-
-                let findUser = await Users.findOne({ phone: req.body.phone })
-
-                if (findUser) {
-                    reject({ status: 200, success: false, message: 'User already exist' })
-                }
-
-                else {
-
-                    let hashedPassword = helper.hashPassword(req.body.password);
-                    await Users.create({
-                        name: req.body.name,
-                        phone: req.body.phone,
-                        email: req.body.email,
-                        userimage: req.file.path,
-                        password: hashedPassword,
-                        role: req.body.role,
-                        store: req.body.store,
-                        adhar: req.body.adhar,
-                        createdat: new Date()
-                    }).then(async (data) => {
-                        resolve({ status: 200, success: true, message: 'User created successfully' })
-                    })
-                }
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
-
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+// Admin User
 
 const AdminLogin = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    let validParams = req.body.phone && req.body.password;
 
-    const promise = new Promise(async function (resolve, reject) {
+    if (validParams) {
+      try {
+        // to check whether user exist
+        const findUser = await Users.findOne({
+          phone: req.body.phone,
+          role: "Superadmin",
+        });
 
-        let validParams = req.body.phone && req.body.password;
+        if (findUser) {
+          // compare the password using bcrypt
+          let passwordCheck = helper.checkPassword(
+            req.body.password,
+            findUser.password
+          );
 
-        if (validParams) {
+          if (passwordCheck) {
+            let token = helper.signToken(findUser.id);
 
-            try {
-                // to check whether user exist
-                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Superadmin' });
+            let user = {
+              name: findUser.name,
+              store: findUser.store,
+              phone: findUser.phone,
+              email: findUser.email,
+              id: findUser.id,
+            };
 
-                if (findUser) {
-                    // compare the password using bcrypt
-                    let passwordCheck = helper.checkPassword(req.body.password, findUser.password);
-
-                    if (passwordCheck) {
-
-                        let token = helper.signToken(findUser.id);
-
-                        let user = {
-                            name: findUser.name,
-                            store: findUser.store,
-                            phone: findUser.phone,
-                            email: findUser.email,
-                            id: findUser.id,
-                        };
-
-                        resolve({ status: 200, success: true, user, token: token, message: 'Login Successful' })
-                    }
-                    else {
-                        reject({ status: 200, success: false, message: 'Incorrect Password' })
-                    }
-                }
-
-                else {
-                    reject({ status: 200, success: false, message: 'Admin does not exist' });
-                }
-            } catch (error) {
-                reject({ status: 200, success: false, message: error.message })
-            }
+            resolve({
+              status: 200,
+              success: true,
+              user,
+              token: token,
+              message: "Login Successful",
+            });
+          } else {
+            reject({
+              status: 200,
+              success: false,
+              message: "Incorrect Password",
+            });
+          }
+        } else {
+          reject({
+            status: 200,
+            success: false,
+            message: "Admin does not exist",
+          });
         }
-        else {
-            reject({ status: 200, success: false, message: 'Provide Valid data' })
-        }
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        user: data.user,
+        token: data.token,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
+};
 
-    promise
+// Store User
 
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, user: data.user, token: data.token });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
+const UserLogin = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    let validParams = req.body.phone && req.body.password;
 
-}
+    if (validParams) {
+      try {
+        // to check whether user exist
+        const findUser = await Users.findOne({
+          phone: req.body.phone,
+          role: "Storeclerk",
+          isdeleted: 0,
+        });
+
+        if (findUser) {
+          // compare the password using bcrypt
+          let passwordCheck = helper.checkPassword(
+            req.body.password,
+            findUser.password
+          );
+
+          if (passwordCheck) {
+            let token = helper.signToken(findUser.id);
+
+            let user = {
+              name: findUser.name,
+              store: findUser.store,
+              phone: findUser.phone,
+              email: findUser.email,
+              id: findUser.id,
+            };
+
+            resolve({
+              status: 200,
+              success: true,
+              user,
+              token: token,
+              message: "Login Successful",
+            });
+          } else {
+            reject({
+              status: 200,
+              success: false,
+              message: "Incorrect Password",
+            });
+          }
+        } else {
+          reject({
+            status: 200,
+            success: false,
+            message: "User does not exist",
+          });
+        }
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        user: data.user,
+        token: data.token,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const UserSignUp = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams =
+        req.body.phone && req.body.name && req.body.password && req.body.role;
+
+      if (validParams) {
+        let findUser = await Users.findOne({ phone: req.body.phone });
+
+        if (findUser) {
+          reject({
+            status: 200,
+            success: false,
+            message: "User already exist",
+          });
+        } else {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          let createUser = await Users.create({
+            name: req.body.name,
+            phone: req.body.phone,
+            email: req.body.email,
+            password: hashedPassword,
+            role: req.body.role,
+            store: req.body.store,
+            adhar: req.body.adhar,
+            createdat: new Date(),
+          }).then(async (data) => {
+            resolve({
+              status: 200,
+              success: true,
+              message: "User created successfully",
+            });
+          });
+        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const UserSignupWithImage = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams =
+        req.body.phone && req.body.name && req.body.password && req.body.role;
+
+      if (validParams) {
+        let findUser = await Users.findOne({ phone: req.body.phone });
+
+        if (findUser) {
+          reject({
+            status: 200,
+            success: false,
+            message: "User already exist",
+          });
+        } else {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          await Users.create({
+            name: req.body.name,
+            phone: req.body.phone,
+            email: req.body.email,
+            userimage: filePath,
+            password: hashedPassword,
+            role: req.body.role,
+            store: req.body.store,
+            adhar: req.body.adhar,
+            createdat: new Date(),
+          }).then(async (data) => {
+            resolve({
+              status: 200,
+              success: true,
+              message: "User created successfully",
+            });
+          });
+        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
 
 const ViewUsersbyStore = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    const validParams = req.body.store && req.headers.token;
+    const token = req.headers.token;
 
-    const promise = new Promise(async function (resolve, reject) {
+    if (validParams) {
+      const checkAccess = await helper.verifyAdminToken(token);
 
-        const validParams = req.body.store && req.headers.token;
-        const token = req.headers.token;
+      if (checkAccess) {
+        try {
+          const result = await Users.find({
+            store: req.body.store,
+            role: "Storeclerk",
+            isdeleted: 0,
+          }).populate("store");
 
-        if (validParams) {
-
-            const checkAccess = await helper.verifyAdminToken(token);
-
-            if (checkAccess) {
-                try {
-                    const result = await Users.find({ store: req.body.store, role: 'Storeclerk', isdeleted: 0 })
-                        .populate('store')
-
-                    resolve({ status: 200, success: true, users: result, message: 'Users list' })
-                } catch (error) {
-                    reject({ status: 200, success: false, message: error.message })
-                }
-            } else {
-                reject({ status: 200, success: false, message: 'Admin does not exist' });
-            }
+          resolve({
+            status: 200,
+            success: true,
+            users: result,
+            message: "Users list",
+          });
+        } catch (error) {
+          reject({ status: 200, success: false, message: error.message });
         }
-        else {
-            reject({ status: 200, success: false, message: 'Provide Valid data' })
-        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Admin does not exist",
+        });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        users: data.users,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, users: data.users });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const ViewUserDetails = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    const validParams = req.body.user && req.headers.token;
+    const token = req.headers.token;
 
-    const promise = new Promise(async function (resolve, reject) {
+    if (validParams) {
+      const checkAccess = await helper.verifyAdminToken(token);
 
-        const validParams = req.body.user && req.headers.token;
-        const token = req.headers.token;
+      if (checkAccess) {
+        try {
+          const result = await Users.findById(req.body.user).populate("store");
 
-        if (validParams) {
+          let newdate = new Date();
+          const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+          const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
+          const orders = await Order.find({
+            user: req.body.user,
+            createdat: { $gte: start, $lt: end },
+          }).sort({ createdat: -1 });
 
-            const checkAccess = await helper.verifyAdminToken(token);
+          const sessionIn = await Session.find({
+            user: req.body.user,
+            sessiontype: "in",
+            entrydate: { $gte: start, $lt: end },
+          })
+            .sort({ entrydate: 1 })
+            .limit(1);
 
-            if (checkAccess) {
-                try {
-                    const result = await Users.findById(req.body.user).populate('store')
+          const sessionOut = await Session.find({
+            user: req.body.user,
+            sessiontype: "out",
+            entrydate: { $gte: start, $lt: end },
+          })
+            .sort({ entrydate: -1 })
+            .limit(1);
 
-                    let newdate = new Date();
-                    const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
-                    const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
-                    const orders = await Order.find({ user: req.body.user, createdat: { $gte: start, $lt: end } })
-                        .sort({ createdat: -1 })
-
-                    const sessionIn = await Session.find({ user: req.body.user, sessiontype: 'in', entrydate: { $gte: start, $lt: end } })
-                        .sort({ entrydate: 1 })
-                        .limit(1)
-
-                    const sessionOut = await Session.find({ user: req.body.user, sessiontype: 'out', entrydate: { $gte: start, $lt: end } })
-                        .sort({ entrydate: -1 })
-                        .limit(1)
-
-                    const session = {
-                        entrydate: sessionIn.length ? sessionIn[0].entrydate : '',
-                        sessionIn: sessionIn.length ? sessionIn[0].sessiontime : '',
-                        sessionOut: sessionOut.length ? sessionOut[0].sessiontime : ''
-                    }
-                    resolve({ status: 200, success: true, user: result, message: 'Users list', orders, session })
-                } catch (error) {
-                    reject({ status: 200, success: false, message: error.message })
-                }
-            } else {
-                reject({ status: 200, success: false, message: 'Admin does not exist' });
-            }
+          const session = {
+            entrydate: sessionIn.length ? sessionIn[0].entrydate : "",
+            sessionIn: sessionIn.length ? sessionIn[0].sessiontime : "",
+            sessionOut: sessionOut.length ? sessionOut[0].sessiontime : "",
+          };
+          resolve({
+            status: 200,
+            success: true,
+            user: result,
+            message: "Users list",
+            orders,
+            session,
+          });
+        } catch (error) {
+          reject({ status: 200, success: false, message: error.message });
         }
-        else {
-            reject({ status: 200, success: false, message: 'Provide Valid data' })
-        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Admin does not exist",
+        });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        user: data.user,
+        orders: data.orders,
+        session: data.session,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, user: data.user, orders: data.orders, session: data.session });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const EditUser = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams = req.body.user && req.headers.token;
 
-    const promise = new Promise(async function (resolve, reject) {
+      if (validParams) {
+        let bodyParams = {
+          name: req.body.name,
+          email: req.body.email,
+          store: req.body.store,
+          adhar: req.body.adhar,
+          userimage: filePath,
+        };
 
-        // main code
-        try {
-
-            let validParams = req.body.user && req.headers.token;
-
-            if (validParams) {
-
-                let bodyParams = {
-                    name: req.body.name,
-                    email: req.body.email,
-                    store: req.body.store,
-                    adhar: req.body.adhar,
-                    userimage: req.file.path,
-                };
-
-                if (req.body.password) {
-                    let hashedPassword = helper.hashPassword(req.body.password);
-                    bodyParams = {
-                        ...bodyParams,
-                        password: hashedPassword
-                    }
-                }
-
-                await Users.updateOne({ _id: req.body.user }, {
-                    $set: bodyParams
-                }).then(async (data) => {
-                    resolve({ status: 200, success: true, message: 'User edited successfully' })
-                })
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
+        if (req.body.password) {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          bodyParams = {
+            ...bodyParams,
+            password: hashedPassword,
+          };
         }
 
+        await Users.updateOne(
+          { _id: req.body.user },
+          {
+            $set: bodyParams,
+          }
+        ).then(async (data) => {
+          resolve({
+            status: 200,
+            success: true,
+            message: "User edited successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const EditUserWithoutImage = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams = req.body.user && req.headers.token;
 
-    const promise = new Promise(async function (resolve, reject) {
+      if (validParams) {
+        let bodyParams = {
+          name: req.body.name,
+          email: req.body.email,
+          store: req.body.store,
+          adhar: req.body.adhar,
+        };
 
-        // main code
-        try {
-
-            let validParams = req.body.user && req.headers.token;
-
-            if (validParams) {
-
-                let bodyParams = {
-                    name: req.body.name,
-                    email: req.body.email,
-                    store: req.body.store,
-                    adhar: req.body.adhar,
-                };
-
-                if (req.body.password) {
-                    let hashedPassword = helper.hashPassword(req.body.password);
-                    bodyParams = {
-                        ...bodyParams,
-                        password: hashedPassword
-                    }
-                }
-
-                await Users.updateOne({ _id: req.body.user }, {
-                    $set: bodyParams
-                }).then(async (data) => {
-                    resolve({ status: 200, success: true, message: 'User edited successfully' })
-                })
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
+        if (req.body.password) {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          bodyParams = {
+            ...bodyParams,
+            password: hashedPassword,
+          };
         }
 
+        await Users.updateOne(
+          { _id: req.body.user },
+          {
+            $set: bodyParams,
+          }
+        ).then(async (data) => {
+          resolve({
+            status: 200,
+            success: true,
+            message: "User edited successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const ViewUserPastSessions = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    const validParams = req.body.user && req.body.date && req.headers.token;
+    const token = req.headers.token;
 
-    const promise = new Promise(async function (resolve, reject) {
+    if (validParams) {
+      const checkAccess = await helper.verifyAdminToken(token);
 
-        const validParams = req.body.user && req.body.date && req.headers.token;
-        const token = req.headers.token;
+      if (checkAccess) {
+        try {
+          let newdate = req.body.date;
+          const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
+          const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
 
-        if (validParams) {
+          const sessionIn = await Session.find({
+            user: req.body.user,
+            sessiontype: "in",
+            entrydate: { $gte: start, $lt: end },
+          })
+            .sort({ entrydate: 1 })
+            .limit(1);
 
-            const checkAccess = await helper.verifyAdminToken(token);
+          const sessionOut = await Session.find({
+            user: req.body.user,
+            sessiontype: "out",
+            entrydate: { $gte: start, $lt: end },
+          })
+            .sort({ entrydate: -1 })
+            .limit(1);
 
-            if (checkAccess) {
-                try {
-
-                    let newdate = req.body.date;
-                    const start = new Date(new Date(newdate).setHours(0, 0, 0, 0));
-                    const end = new Date(new Date(newdate).setHours(23, 59, 59, 999));
-
-                    const sessionIn = await Session.find({ user: req.body.user, sessiontype: 'in', entrydate: { $gte: start, $lt: end } })
-                        .sort({ entrydate: 1 })
-                        .limit(1)
-
-                    const sessionOut = await Session.find({ user: req.body.user, sessiontype: 'out', entrydate: { $gte: start, $lt: end } })
-                        .sort({ entrydate: -1 })
-                        .limit(1)
-
-                    const session = {
-                        entrydate: sessionIn.length ? sessionIn[0].entrydate : '',
-                        sessionIn: sessionIn.length ? sessionIn[0].sessiontime : '',
-                        sessionOut: sessionIn.length ? sessionOut[0].sessiontime : ''
-                    }
-                    resolve({ status: 200, success: true, message: 'Users list', session })
-                } catch (error) {
-                    reject({ status: 200, success: false, message: error.message })
-                }
-            } else {
-                reject({ status: 200, success: false, message: 'Admin does not exist' });
-            }
+          const session = {
+            entrydate: sessionIn.length ? sessionIn[0].entrydate : "",
+            sessionIn: sessionIn.length ? sessionIn[0].sessiontime : "",
+            sessionOut: sessionIn.length ? sessionOut[0].sessiontime : "",
+          };
+          resolve({
+            status: 200,
+            success: true,
+            message: "Users list",
+            session,
+          });
+        } catch (error) {
+          reject({ status: 200, success: false, message: error.message });
         }
-        else {
-            reject({ status: 200, success: false, message: 'Provide Valid data' })
-        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Admin does not exist",
+        });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        session: data.session,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, session: data.session });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const DeleteUser = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams = req.body.user && req.headers.token;
 
-    const promise = new Promise(async function (resolve, reject) {
+      if (validParams) {
+        await Users.updateOne(
+          { _id: req.body.user },
+          {
+            $set: {
+              isdeleted: 1,
+            },
+          }
+        ).then(async (data) => {
+          resolve({
+            status: 200,
+            success: true,
+            message: "User deleted successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
 
-        // main code
-        try {
+  promise
 
-            let validParams = req.body.user && req.headers.token;
-
-            if (validParams) {
-
-                await Users.updateOne({ _id: req.body.user }, {
-                    $set: {
-                        isdeleted: 1
-                    }
-                }).then(async (data) => {
-                    resolve({ status: 200, success: true, message: 'User deleted successfully' })
-                })
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
-
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
+};
 
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+// Customers
 
 const CustomerSignUp = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      let validParams = req.body.phone && req.body.name;
 
-    const promise = new Promise(async function (resolve, reject) {
+      if (validParams) {
+        let findUser = await Users.findOne({ phone: req.body.phone });
 
-        try {
+        if (findUser) {
+          reject({
+            status: 200,
+            success: false,
+            message: "User already exist",
+          });
+        } else {
+          let hashedPassword = helper.hashPassword("123456");
+          let createUser = await Users.create({
+            name: req.body.name,
+            phone: req.body.phone,
+            nickname: req.body.nickname,
+            password: hashedPassword,
+            role: "Customer",
+            store: req.body.store,
+            createdat: new Date(),
+          }).then(async (data) => {
+            const customeraddress = JSON.parse(req.body.customeraddress);
 
-            let validParams = req.body.phone && req.body.name;
+            if (customeraddress.length) {
+              let addressList = [];
 
-            if (validParams) {
+              for (let i = 0; i < customeraddress.length; i++) {
+                const address = customeraddress[i];
+                let createAddress = await Customeraddress.create({
+                  addressline1: address.addressline1,
+                  addressline2: address.addressline2,
+                  pincode: address.pincode,
+                  landmark: address.landmark,
+                  area: address.area,
+                  city: address.city,
+                  state: address.state,
+                  country: address.country,
+                  customer: data._id,
+                  createdat: new Date(),
+                });
+                addressList.push(createAddress._id);
+              }
 
-                let findUser = await Users.findOne({ phone: req.body.phone })
-
-                if (findUser) {
-                    reject({ status: 200, success: false, message: 'User already exist' })
-                }
-
-                else {
-
-                    let hashedPassword = helper.hashPassword('123456');
-                    let createUser = await Users.create({
-                        name: req.body.name,
-                        phone: req.body.phone,
-                        nickname: req.body.nickname,
-                        password: hashedPassword,
-                        role: 'Customer',
-                        store: req.body.store,
-                        createdat: new Date()
-                    }).then(async (data) => {
-
-                        const customeraddress = JSON.parse(req.body.customeraddress);
-
-                        if (customeraddress.length) {
-
-                            let addressList = [];
-
-                            for (let i = 0; i < customeraddress.length; i++) {
-                                const address = customeraddress[i];
-                                let createAddress = await Customeraddress.create({
-                                    addressline1: address.addressline1,
-                                    addressline2: address.addressline2,
-                                    pincode: address.pincode,
-                                    landmark: address.landmark,
-                                    area: address.area,
-                                    city: address.city,
-                                    state: address.state,
-                                    country: address.country,
-                                    customer: data._id,
-                                    createdat: new Date()
-                                })
-                                addressList.push(createAddress._id);
-                            }
-
-                            await Users.findByIdAndUpdate(data._id,
-                                { customeraddress: addressList },
-                                { new: true, useFindAndModify: false }
-                            )
-                        }
-                        resolve({ status: 200, success: true, message: 'Customer created successfully' })
-                    })
-                }
-
+              await Users.findByIdAndUpdate(
+                data._id,
+                { customeraddress: addressList },
+                { new: true, useFindAndModify: false }
+              );
             }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
+            resolve({
+              status: 200,
+              success: true,
+              message: "Customer created successfully",
+            });
+          });
         }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
 
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const EditCustomer = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      let validParams = req.body.phone && req.body.name;
 
-    const promise = new Promise(async function (resolve, reject) {
+      if (validParams) {
+        let createUser = await Users.updateOne(
+          { _id: req.body.customer },
+          {
+            $set: {
+              name: req.body.name,
+              nickname: req.body.nickname,
+              store: req.body.store,
+            },
+          }
+        ).then(async (data) => {
+          const customeraddress = JSON.parse(req.body.customeraddress);
 
-        try {
+          if (customeraddress.length) {
+            let addressList = [];
 
-            let validParams = req.body.phone && req.body.name;
-
-            if (validParams) {
-
-                let createUser = await Users.updateOne({ _id: req.body.customer }, {
+            for (let i = 0; i < customeraddress.length; i++) {
+              const address = customeraddress[i];
+              if (address.id) {
+                await Customeraddress.updateOne(
+                  { _id: address.id },
+                  {
                     $set: {
-                        name: req.body.name,
-                        nickname: req.body.nickname,
-                        store: req.body.store
-                    }
-                }).then(async (data) => {
-
-                    const customeraddress = JSON.parse(req.body.customeraddress);
-
-                    if (customeraddress.length) {
-
-                        let addressList = [];
-
-                        for (let i = 0; i < customeraddress.length; i++) {
-                            const address = customeraddress[i];
-                            if (address.id) {
-                                await Customeraddress.updateOne({ _id: address.id }, {
-                                    $set: {
-                                        addressline1: address.addressline1,
-                                        addressline2: address.addressline2,
-                                        pincode: address.pincode,
-                                        landmark: address.landmark,
-                                        area: address.area,
-                                        city: address.city,
-                                        state: address.state,
-                                        country: address.country
-                                    }
-                                })
-                                addressList.push(address.id);
-                            } else {
-                                let createAddress = await Customeraddress.create({
-                                    addressline1: address.addressline1,
-                                    addressline2: address.addressline2,
-                                    pincode: address.pincode,
-                                    landmark: address.landmark,
-                                    area: address.area,
-                                    city: address.city,
-                                    state: address.state,
-                                    country: address.country,
-                                    customer: req.body.customer,
-                                    createdat: new Date()
-                                })
-                                addressList.push(createAddress._id);
-                            }
-                        }
-
-                        await Users.findByIdAndUpdate(req.body.customer,
-                            { customeraddress: addressList },
-                            { new: true, useFindAndModify: false }
-                        )
-                    }
-                    resolve({ status: 200, success: true, message: 'Customer edited successfully' })
-                })
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+                      addressline1: address.addressline1,
+                      addressline2: address.addressline2,
+                      pincode: address.pincode,
+                      landmark: address.landmark,
+                      area: address.area,
+                      city: address.city,
+                      state: address.state,
+                      country: address.country,
+                    },
+                  }
+                );
+                addressList.push(address.id);
+              } else {
+                let createAddress = await Customeraddress.create({
+                  addressline1: address.addressline1,
+                  addressline2: address.addressline2,
+                  pincode: address.pincode,
+                  landmark: address.landmark,
+                  area: address.area,
+                  city: address.city,
+                  state: address.state,
+                  country: address.country,
+                  customer: req.body.customer,
+                  createdat: new Date(),
+                });
+                addressList.push(createAddress._id);
+              }
             }
 
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
+            await Users.findByIdAndUpdate(
+              req.body.customer,
+              { customeraddress: addressList },
+              { new: true, useFindAndModify: false }
+            );
+          }
+          resolve({
+            status: 200,
+            success: true,
+            message: "Customer edited successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
 
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const ViewCustomerbyStore = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      const result = await Users.find({
+        store: req.headers.store,
+        role: "Customer",
+        isdeleted: 0,
+      })
+        .select("name phone store nickname customeraddress")
+        .populate("customeraddress");
+      resolve({
+        status: 200,
+        success: true,
+        customer: result,
+        message: "Customer list",
+      });
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
 
-    const promise = new Promise(async function (resolve, reject) {
+  promise
 
-        try {
-            const result = await Users.find({ store: req.headers.store, role: 'Customer' })
-                .select('name phone store nickname customeraddress')
-                .populate('customeraddress')
-            resolve({ status: 200, success: true, customer: result, message: 'Customer list' })
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        customer: data.customer,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, customer: data.customer });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
-
-const CreateDeliveryUser = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        // main code
-        try {
-
-            let validParams = req.body.phone && req.body.name && req.body.password;
-
-            if (validParams) {
-
-                let findUser = await Users.findOne({ phone: req.body.phone })
-
-                if (findUser) {
-                    reject({ status: 200, success: false, message: 'User already exist' })
-                }
-
-                else {
-
-                    let hashedPassword = helper.hashPassword(req.body.password);
-                    let createUser = await Users.create({
-                        name: req.body.name,
-                        phone: req.body.phone,
-                        email: req.body.email,
-                        password: hashedPassword,
-                        role: 'Deliveryman',
-                        store: req.body.store,
-                        adhar: req.body.adhar,
-                        createdat: new Date()
-                    }).then(async (data) => {
-                        resolve({ status: 200, success: true, message: 'User created successfully' })
-                    })
-                }
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
-
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
-
-const EditDeliveryUser = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        // main code
-        try {
-
-            let validParams = req.body.deliveryuser && req.body.phone && req.body.name;
-
-            if (validParams) {
-
-                let bodyParams = {
-                    name: req.body.name,
-                    email: req.body.email,
-                    store: req.body.store,
-                    adhar: req.body.adhar
-                };
-
-                if (req.body.password) {
-                    let hashedPassword = helper.hashPassword(req.body.password);
-                    bodyParams = {
-                        ...bodyParams,
-                        password: hashedPassword
-                    }
-                }
-
-                await Users.updateOne({ _id: req.body.deliveryuser }, {
-                    $set: bodyParams
-                }).then(async (data) => {
-                    resolve({ status: 200, success: true, message: 'User edited successfully' })
-                })
-
-            }
-            else {
-                reject({ status: 200, success: false, message: 'Provide all necessary fields' })
-            }
-
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
-
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
-
-const ViewDeliverymanbyStore = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        try {
-            const result = await Users.find({ store: req.body.store, role: 'Deliveryman' })
-
-            resolve({ status: 200, success: true, deliveryman: result, message: 'Delivery man list' })
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, deliveryman: data.deliveryman });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
-
-const DeliveryManLogin = async function (req, res) {
-
-    const promise = new Promise(async function (resolve, reject) {
-
-        let validParams = req.body.phone && req.body.password;
-
-        if (validParams) {
-
-            try {
-                // to check whether user exist
-                const findUser = await Users.findOne({ phone: req.body.phone, role: 'Deliveryman', isdeleted: 0 });
-
-                if (findUser) {
-                    // compare the password using bcrypt
-                    let passwordCheck = helper.checkPassword(req.body.password, findUser.password);
-
-                    if (passwordCheck) {
-
-                        let token = helper.signToken(findUser.id);
-
-                        let user = {
-                            name: findUser.name,
-                            store: findUser.store,
-                            phone: findUser.phone,
-                            email: findUser.email,
-                            id: findUser.id,
-                        };
-
-                        resolve({ status: 200, success: true, user, token: token, message: 'Login Successful' })
-                    }
-                    else {
-                        reject({ status: 200, success: false, message: 'Incorrect Password' })
-                    }
-                }
-
-                else {
-                    reject({ status: 200, success: false, message: 'User does not exist' });
-                }
-            } catch (error) {
-                reject({ status: 200, success: false, message: error.message })
-            }
-        }
-        else {
-            reject({ status: 200, success: false, message: 'Provide Valid data' })
-        }
-    });
-
-    promise
-
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, user: data.user, token: data.token });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
-
-}
+};
 
 const ViewCustomerAddress = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      const result = await Customeraddress.find({
+        customer: req.body.customer,
+      });
 
-    const promise = new Promise(async function (resolve, reject) {
+      resolve({
+        status: 200,
+        success: true,
+        address: result,
+        message: "Customer address list",
+      });
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
 
-        try {
-            const result = await Customeraddress.find({ customer: req.body.customer })
+  promise
 
-            resolve({ status: 200, success: true, address: result, message: 'Customer address list' })
-        } catch (error) {
-            reject({ status: 200, success: false, message: error.message })
-        }
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        address: data.address,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
     });
+};
 
-    promise
+const CustomerLogin = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    let validParams = req.body.phone && req.body.password;
 
-        .then(function (data) {
-            res.status(data.status).send({ success: data.success, message: data.message, address: data.address });
-        })
-        .catch(function (error) {
-            res.status(error.status).send({ success: error.success, message: error.message });
-        })
+    if (validParams) {
+      try {
+        // to check whether user exist
+        const findUser = await Users.findOne({
+          phone: req.body.phone,
+          role: "Customer",
+          isdeleted: 0,
+        });
 
-}
+        if (findUser) {
+          const { password, name, store, phone, email, id } = findUser;
+          // compare the password using bcrypt
+          let passwordCheck = helper.checkPassword(
+            req.body.password,
+            password
+          );
+
+          if (passwordCheck) {
+            let token = helper.signToken(id);
+
+            let user = {
+              name,
+              store,
+              phone,
+              email,
+              id,
+            };
+
+            resolve({
+              status: 200,
+              success: true,
+              user,
+              token,
+              message: "Login Successful",
+            });
+          } else {
+            reject({
+              status: 200,
+              success: false,
+              message: "Incorrect Password",
+            });
+          }
+        } else {
+          reject({
+            status: 200,
+            success: false,
+            message: "User does not exist",
+          });
+        }
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        user: data.user,
+        token: data.token,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const EditCustomerDetails = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams = req.body.user && req.headers.token;
+
+      if (validParams) {
+        let bodyParams = {
+          name: req.body.name,
+          email: req.body.email
+        };
+
+        if (req.body.password) {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          bodyParams = {
+            ...bodyParams,
+            password: hashedPassword,
+          };
+        }
+
+        await Users.updateOne(
+          { _id: req.body.user },
+          {
+            $set: bodyParams,
+          }
+        )
+        
+        await Users.findById(req.body.user)
+        .select('name email phone store')
+        .then(async (data) => {
+          resolve({
+            status: 200,
+            success: true,
+            customer: data,
+            message: "Customer Details edited successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message, customer: data.customer });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const EditCustomerLocation = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      let validParams =
+        req.body.latitude && req.body.longitude && req.body.addressId;
+
+      if (validParams) {
+        await Customeraddress.updateOne(
+          { _id: req.body.addressId },
+          {
+            $set: {
+              latitude: req.body.latitude,
+              longitude: req.body.longitude,
+            },
+          }
+        );
+        resolve({
+          status: 200,
+          success: true,
+          message: "Customer location edited successfully",
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+// Delivery User
+
+const CreateDeliveryUser = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams = req.body.phone && req.body.name && req.body.password;
+
+      if (validParams) {
+        let findUser = await Users.findOne({ phone: req.body.phone });
+
+        if (findUser) {
+          reject({
+            status: 200,
+            success: false,
+            message: "User already exist",
+          });
+        } else {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          let createUser = await Users.create({
+            name: req.body.name,
+            phone: req.body.phone,
+            email: req.body.email,
+            password: hashedPassword,
+            role: "Deliveryman",
+            store: req.body.store,
+            adhar: req.body.adhar,
+            createdat: new Date(),
+          }).then(async (data) => {
+            resolve({
+              status: 200,
+              success: true,
+              message: "User created successfully",
+            });
+          });
+        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const EditDeliveryUser = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams =
+        req.body.deliveryuser && req.body.phone && req.body.name;
+
+      if (validParams) {
+        let bodyParams = {
+          name: req.body.name,
+          email: req.body.email,
+          store: req.body.store,
+          adhar: req.body.adhar,
+        };
+
+        if (req.body.password) {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          bodyParams = {
+            ...bodyParams,
+            password: hashedPassword,
+          };
+        }
+
+        await Users.updateOne(
+          { _id: req.body.deliveryuser },
+          {
+            $set: bodyParams,
+          }
+        ).then(async (data) => {
+          resolve({
+            status: 200,
+            success: true,
+            message: "User edited successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const ViewDeliverymanbyStore = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      const result = await Users.find({
+        store: req.body.store,
+        role: "Deliveryman",
+      });
+
+      resolve({
+        status: 200,
+        success: true,
+        deliveryman: result,
+        message: "Delivery man list",
+      });
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        deliveryman: data.deliveryman,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const DeliveryManLogin = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    let validParams = req.body.phone && req.body.password;
+
+    if (validParams) {
+      try {
+        // to check whether user exist
+        const findUser = await Users.findOne({
+          phone: req.body.phone,
+          role: "Deliveryman",
+          isdeleted: 0,
+        });
+
+        if (findUser) {
+          // compare the password using bcrypt
+          let passwordCheck = helper.checkPassword(
+            req.body.password,
+            findUser.password
+          );
+
+          if (passwordCheck) {
+            let token = helper.signToken(findUser.id);
+
+            let user = {
+              name: findUser.name,
+              store: findUser.store,
+              phone: findUser.phone,
+              email: findUser.email,
+              id: findUser.id,
+            };
+
+            resolve({
+              status: 200,
+              success: true,
+              user,
+              token: token,
+              message: "Login Successful",
+            });
+          } else {
+            reject({
+              status: 200,
+              success: false,
+              message: "Incorrect Password",
+            });
+          }
+        } else {
+          reject({
+            status: 200,
+            success: false,
+            message: "User does not exist",
+          });
+        }
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        user: data.user,
+        token: data.token,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+// Milk entry man
+
+const CreateMilkentryman = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams = req.body.phone && req.body.name && req.body.password;
+
+      if (validParams) {
+        let findUser = await Users.findOne({ phone: req.body.phone });
+
+        if (findUser) {
+          reject({
+            status: 200,
+            success: false,
+            message: "User already exist",
+          });
+        } else {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          let createUser = await Users.create({
+            name: req.body.name,
+            phone: req.body.phone,
+            email: req.body.email,
+            password: hashedPassword,
+            role: "Milkentryman",
+            store: req.body.store,
+            createdat: new Date(),
+          }).then(async (data) => {
+            resolve({
+              status: 200,
+              success: true,
+              message: "User created successfully",
+            });
+          });
+        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const EditMilkentryman = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    // main code
+    try {
+      let validParams =
+        req.body.milkentryman && req.body.phone && req.body.name;
+
+      if (validParams) {
+        let bodyParams = {
+          name: req.body.name,
+          email: req.body.email,
+          store: req.body.store,
+        };
+
+        if (req.body.password) {
+          let hashedPassword = helper.hashPassword(req.body.password);
+          bodyParams = {
+            ...bodyParams,
+            password: hashedPassword,
+          };
+        }
+
+        await Users.updateOne(
+          { _id: req.body.milkentryman },
+          {
+            $set: bodyParams,
+          }
+        ).then(async (data) => {
+          resolve({
+            status: 200,
+            success: true,
+            message: "User edited successfully",
+          });
+        });
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "Provide all necessary fields",
+        });
+      }
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const ViewMilkentrymanbyStore = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    try {
+      const result = await Users.find({
+        store: req.body.store,
+        role: "Milkentryman",
+      });
+
+      resolve({
+        status: 200,
+        success: true,
+        milkentryman: result,
+        message: "Milkentry man list",
+      });
+    } catch (error) {
+      reject({ status: 200, success: false, message: error.message });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        milkentryman: data.milkentryman,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const MilkentrymanLogin = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    let validParams = req.body.phone && req.body.password;
+
+    if (validParams) {
+      try {
+        // to check whether user exist
+        const findUser = await Users.findOne({
+          phone: req.body.phone,
+          role: "Milkentryman",
+          isdeleted: 0,
+        });
+
+        if (findUser) {
+          // compare the password using bcrypt
+          let passwordCheck = helper.checkPassword(
+            req.body.password,
+            findUser.password
+          );
+
+          if (passwordCheck) {
+            let token = helper.signToken(findUser.id);
+
+            let user = {
+              name: findUser.name,
+              store: findUser.store,
+              phone: findUser.phone,
+              email: findUser.email,
+              id: findUser.id,
+            };
+
+            resolve({
+              status: 200,
+              success: true,
+              user,
+              token: token,
+              message: "Login Successful",
+            });
+          } else {
+            reject({
+              status: 200,
+              success: false,
+              message: "Incorrect Password",
+            });
+          }
+        } else {
+          reject({
+            status: 200,
+            success: false,
+            message: "User does not exist",
+          });
+        }
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message });
+      }
+    } else {
+      reject({ status: 200, success: false, message: "Provide Valid data" });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({
+        success: data.success,
+        message: data.message,
+        user: data.user,
+        token: data.token,
+      });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
 
 module.exports = {
-    uploadImg,
-    UserLogin,
-    UserSignUp,
-    UserSignupWithImage,
-    AdminLogin,
-    ViewUsersbyStore,
-    ViewUserDetails,
-    EditUser,
-    EditUserWithoutImage,
-    ViewUserPastSessions,
-    DeleteUser,
-    CustomerSignUp,
-    EditCustomer,
-    ViewCustomerbyStore,
-    CreateDeliveryUser,
-    EditDeliveryUser,
-    ViewDeliverymanbyStore,
-    DeliveryManLogin,
-    ViewCustomerAddress
+  uploadImg,
+  UserLogin,
+  UserSignUp,
+  UserSignupWithImage,
+  AdminLogin,
+  ViewUsersbyStore,
+  ViewUserDetails,
+  EditUser,
+  EditUserWithoutImage,
+  ViewUserPastSessions,
+  DeleteUser,
+  CustomerSignUp,
+  EditCustomer,
+  ViewCustomerbyStore,
+  CustomerLogin,
+  CreateDeliveryUser,
+  EditDeliveryUser,
+  ViewDeliverymanbyStore,
+  DeliveryManLogin,
+  ViewCustomerAddress,
+  CreateMilkentryman,
+  MilkentrymanLogin,
+  EditMilkentryman,
+  ViewMilkentrymanbyStore,
+  EditCustomerDetails,
+  EditCustomerLocation,
 };

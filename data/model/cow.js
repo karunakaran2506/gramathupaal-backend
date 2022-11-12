@@ -17,6 +17,10 @@ const CowSchema = new Schema({
         enum: CowType,
         required: true
     },
+    antibiotictonobil: {
+        type: Boolean,
+        default: false
+    },
     tagnumber: {
         type: String,
         required: true
@@ -49,6 +53,14 @@ const CowSchema = new Schema({
         type: Number,
         default: null
     },
+    breedtype: {
+        type: String,
+        required: true
+    },
+    breeddescription: {
+        type: String,
+        required: true
+    },
     dateofdewarming: {
         type: Date,
         default: null
@@ -69,6 +81,14 @@ const CowSchema = new Schema({
         type: Date,
         default: null
     },
+    bullname: {
+        type: String,
+        default: null
+    },
+    bulldescription: {
+        type: String,
+        default: null
+    },
     // treatment 
     stomachcleaning: {
         type: Boolean,
@@ -82,8 +102,16 @@ const CowSchema = new Schema({
         type: Boolean,
         default: false
     },
+    exapar: {
+        type: Boolean,
+        default: false
+    },
     //
     colostrummilkweight: {
+        type: Number,
+        default: null
+    },
+    colostrumfeeded: {
         type: Number,
         default: null
     },
@@ -126,6 +154,29 @@ const CowSchema = new Schema({
             ref: 'cowmilk'
         }
     ],
+    cowdewarming: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'cowdewarming'
+        }
+    ],
+    cowheat: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'cowheat'
+        }
+    ],
+    cowteeth: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'cowteeth'
+        }
+    ],
+    store: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'store'
+    },
     //
     isDeleted: {
         type: Boolean,
