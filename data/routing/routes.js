@@ -157,6 +157,12 @@ router.post('/addCowTeeth', CowController.AddCowTeeth);
 router.post('/viewCowMilkEntry', CowController.ViewCowMilkEntry);
 router.post('/addCowMilkentry', CowController.AddCowMilkEntry);
 
+router.post('/addCowTreatment', CowController.AddCowTreatment);
+router.post('/viewCowTreatment', CowController.ListCowTreatment);
+
+router.post('/addCalfDelivery', CowController.AddCalfDelivery);
+router.post('/viewCalfDelivery', CowController.ListCalfDelivery);
+
 // Production function
 router.post("/createProduction", ProductionController.CreateProduction);
 router.post("/listProduction", ProductionController.ListProduction);

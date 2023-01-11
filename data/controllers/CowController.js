@@ -5,6 +5,8 @@ const Vaccination = require("../model/vaccination");
 const CowHeat = require("../model/cowheat");
 const CowTeeth = require("../model/cowteeth");
 const CowDewarming = require("../model/cowdewarming");
+const CowTreatment = require("../model/cowtreatment");
+const CalfDelivery = require("../model/calfdelivery");
 const helper = require("../common/helper");
 
 const AddCow = async function (req, res) {
@@ -1323,6 +1325,193 @@ const DeleteCow = async function (req, res) {
 
 //
 
+// cow treatment & calf delivery
+
+const AddCowTreatment = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    const validParams =
+      req.body.problem && req.body.prescription && req.body.cow && req.body.store && req.body.entrydate;
+
+    if (validParams) {
+      const checkAccess = helper.verifyAdminToken(req.headers.token);
+      if (checkAccess) {
+        try {
+          const { problem, prescription, cow, entrydate, comment, store } = req.body;
+
+          await CowTreatment.create({
+            problem,
+            prescription,
+            store,
+            cow,
+            entrydate,
+            comment,
+            createdat: new Date(),
+          }).then(async (data) => {
+            resolve({
+              status: 200,
+              success: true,
+              message: "Cow treatment added successfully",
+            });
+          });
+        } catch (error) {
+          reject({ status: 200, success: false, message: error.message });
+        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "No access to proceed this action",
+        });
+      }
+    } else {
+      reject({
+        status: 200,
+        success: false,
+        message: "Provide all necessary fields",
+      });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const ListCowTreatment = async function (req, res) {
+
+  const promise = new Promise(async function (resolve, reject) {
+
+    let validParams = req.body.store;
+
+    if (validParams) {
+      try {
+        await CowTreatment.find({ store: req.body.store }).populate("cow", "name tagnumber")
+          .then((data) => {
+            resolve({ status: 200, success: true, message: 'Cow treatment list', data })
+          })
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message })
+      }
+    }
+    else {
+      reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+    }
+
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({ success: data.success, message: data.message, data: data.data });
+    })
+    .catch(function (error) {
+      res.status(error.status).send({ success: error.success, message: error.message });
+    })
+
+}
+
+const AddCalfDelivery = async function (req, res) {
+  const promise = new Promise(async function (resolve, reject) {
+    const validParams =
+      req.body.cow && req.body.weight && req.body.gender && req.body.store && req.body.entrydate;
+
+    if (validParams) {
+      const checkAccess = helper.verifyAdminToken(req.headers.token);
+      if (checkAccess) {
+        try {
+          const { weight, gender, cow, entrydate, status, store, comment } = req.body;
+
+          await CalfDelivery.create({
+            weight,
+            gender,
+            store,
+            cow,
+            entrydate,
+            status,
+            comment,
+            createdat: new Date(),
+          }).then(async (data) => {
+            resolve({
+              status: 200,
+              success: true,
+              message: "Calf delivery added successfully",
+            });
+          });
+        } catch (error) {
+          reject({ status: 200, success: false, message: error.message });
+        }
+      } else {
+        reject({
+          status: 200,
+          success: false,
+          message: "No access to proceed this action",
+        });
+      }
+    } else {
+      reject({
+        status: 200,
+        success: false,
+        message: "Provide all necessary fields",
+      });
+    }
+  });
+
+  promise
+
+    .then(function (data) {
+      res
+        .status(data.status)
+        .send({ success: data.success, message: data.message });
+    })
+    .catch(function (error) {
+      res
+        .status(error.status)
+        .send({ success: error.success, message: error.message });
+    });
+};
+
+const ListCalfDelivery = async function (req, res) {
+
+  const promise = new Promise(async function (resolve, reject) {
+
+    let validParams = req.body.store;
+
+    if (validParams) {
+      try {
+        await CalfDelivery.find({ store: req.body.store }).populate("cow", "name tagnumber")
+          .then((data) => {
+            resolve({ status: 200, success: true, message: 'Calf delivery list', data })
+          })
+      } catch (error) {
+        reject({ status: 200, success: false, message: error.message })
+      }
+    }
+    else {
+      reject({ status: 200, success: false, message: 'Provide all necessary fields' })
+    }
+
+  });
+
+  promise
+
+    .then(function (data) {
+      res.status(data.status).send({ success: data.success, message: data.message, data: data.data });
+    })
+    .catch(function (error) {
+      res.status(error.status).send({ success: error.success, message: error.message });
+    })
+
+}
+
 module.exports = {
   AddCow,
   EditCow,
@@ -1338,4 +1527,8 @@ module.exports = {
   AddCowTeeth,
   ViewCowMilkEntrybyDate,
   DeleteCow,
+  AddCowTreatment,
+  ListCowTreatment,
+  AddCalfDelivery,
+  ListCalfDelivery
 };
