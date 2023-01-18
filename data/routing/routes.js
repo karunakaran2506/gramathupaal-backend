@@ -15,6 +15,7 @@ const MilkSupplyController = require('../controllers/MilkSupplyController');
 const CowController = require('../controllers/CowController');
 const ProductionController = require("../controllers/ProductionController");
 const FeedController = require("../controllers/FeedController");
+const MedicineController = require("../controllers/MedicineController");
 
 // User Functions
 router.post('/adminLogin', UserController.AdminLogin);
@@ -182,6 +183,12 @@ router.post("/listAllFeedStock", FeedController.ListAllFeedStock);
 router.post("/listCustomerProductToken", ProducttokenController.ListCustomerProductToken);
 router.post("/customerMilkcard", MilkcardController.CustomerActiveMilkcard);
 router.post("/listActiveSubscription", SubscriptionController.ListActiveSubscriptionorderbyCustomer);
-;;
+
+// Medicine
+router.post("/createMedicine", MedicineController.CreateMedicine);
+router.post("/listMedicine", MedicineController.ListMedicine);
+
+router.post("/addMedicineStock", MedicineController.AddMedicineStock);
+router.post("/viewMedicineStock", MedicineController.ViewMedicineStock);
 
 module.exports = router;
