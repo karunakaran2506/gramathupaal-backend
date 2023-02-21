@@ -152,7 +152,10 @@ const ListMilkcard = async function (req, res) {
       let product = await Milkcard.find({ isdeleted: 0 })
         .select("name validity store product _id price")
         .populate("store")
-        .populate("product", "_id quantity unit name store")
+        .populate({
+          path: "product",
+          select: "_id quantity unit name store"
+        })
         .then((data) => {
           resolve({
             status: 200,

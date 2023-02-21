@@ -80,7 +80,7 @@ const ListAllStockEntries = async function (req, res) {
         const entries = [];
         let stockentry;
 
-        stockentry = await Product.find({ store: req.body.store })
+        stockentry = await Product.find({ store: req.body.store, isDeleted: false })
           .select("_id name quantity milktype unit")
           .populate("category", '_id name');
 
@@ -210,7 +210,7 @@ const ListUserwiseStockEntries = async function (req, res) {
         const entries = [];
         let stockentry;
 
-        stockentry = await Product.find({ store: req.body.store })
+        stockentry = await Product.find({ store: req.body.store, isDeleted: false })
           .select("_id name quantity milktype unit")
           .populate("category", "_id name");
 
@@ -424,7 +424,7 @@ const ListTodayStockBalance = async function (req, res) {
         const entries = [];
         let stockentry;
 
-        stockentry = await Product.find({ store: req.body.store })
+        stockentry = await Product.find({ store: req.body.store, isDeleted: false })
           .select("_id name quantity milktype unit")
           .populate("category", "name categorytype");
 
@@ -553,7 +553,7 @@ const ListTodayStockEntriesbyProduct = async function (req, res) {
         const entries = [];
         let stockentry;
 
-        stockentry = await Product.find({ store: req.body.store })
+        stockentry = await Product.find({ store: req.body.store, isDeleted: false })
           .select("_id name quantity milktype unit");
 
         for (let i = 0; i < stockentry.length; i++) {
